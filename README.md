@@ -1,4 +1,4 @@
-Rinkeby contract example: https://rinkeby.etherscan.io/address/0x5303eCF1f2A2F1B3D44691b9B896235bcba99110
+Rinkeby contract example: https://rinkeby.etherscan.io/address/0xf122f67A14172bC0Aead80599FA80e08f750eaf1
 
 Tasks:
 ```
@@ -17,4 +17,4 @@ ETHERSCAN=""
 
 deploy 
 `npx hardhat run --network rinkeby scripts/deploy.ts`
-`npx hardhat verify --network rinkeby --constructor-args arguments.js 0x5303eCF1f2A2F1B3D44691b9B896235bcba99110`
+`npx hardhat verify --network rinkeby --constructor-args arguments.js 0xf122f67A14172bC0Aead80599FA80e08f750eaf1`
