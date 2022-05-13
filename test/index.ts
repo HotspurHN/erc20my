@@ -121,4 +121,26 @@ describe("Erc20my", function () {
       await expect(Erc20myInstance.connect(addr1).burn(owner.address, 1)).to.be.revertedWith("VM Exception while processing transaction: reverted with reason string 'Only owner allowed'");
     });
   });
+
+  describe("increaseAllowance", function () {
+    it("Should increase allowance", async function () {
+      let tx = await Erc20myInstance.increaseAllowance(addr1.address, 100);
+      await tx.wait();
+      expect(await Erc20myInstance.allowance(owner.address, addr1.address)).to.equal(100);
+    });
+  });
+
+  describe("decreaseAllowance", function () {
+    it("Should decrease allowance", async function () {
+      await Erc20myInstance.approve(addr1.address, 100);
+      let tx = await Erc20myInstance.decreaseAllowance(addr1.address, 50);
+      await tx.wait();
+      expect(await Erc20myInstance.allowance(owner.address, addr1.address)).to.equal(50);
+    });
+    
+    it("Should fail when trying to decrease more than allowance", async function () {
+      await Erc20myInstance.approve(addr1.address, 100);
+      await expect(Erc20myInstance.decreaseAllowance(addr1.address, 101)).to.be.revertedWith("VM Exception while processing transaction: reverted with reason string 'Not enough allowance'");
+    });
+  });
 });

@@ -33,7 +33,7 @@ contract Erc20my {
         symbol = _symbol;
         decimals = _decimals;
         totalSupply = _totalSupply;
-        balances[msg.sender] = totalSupply;
+        balances[msg.sender] = _totalSupply;
         owner = msg.sender;
     }
 
@@ -72,7 +72,7 @@ contract Erc20my {
     function mint(address _to, uint256 _value) public onlyOwner returns (bool) {
         totalSupply += _value;
         balances[_to] += _value;
-        emit Transfer(address(this), _to, _value);
+        emit Transfer(address(0), _to, _value);
         return true;
     }
 
@@ -80,6 +80,17 @@ contract Erc20my {
         require(balances[_from] >= _value, "Not enough balance");
         totalSupply -= _value;
         balances[_from] -= _value;
+        emit Transfer(_from, address(0), _value);
+        return true;
+    }
+
+    function increaseAllowance(address _spender, uint256 _value) public returns (bool) {
+        approve(_spender, allowed[msg.sender][_spender] + _value);
+        return true;
+    }
+    function decreaseAllowance(address _spender, uint256 _value) public returns (bool) {
+        require(allowed[msg.sender][_spender] >= _value, "Not enough allowance");
+        approve(_spender, allowed[msg.sender][_spender] - _value);
         return true;
     }
 }
