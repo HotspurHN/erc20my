@@ -2,8 +2,10 @@
 pragma solidity ^0.8.0;
 
 import "hardhat/console.sol";
+import "./interfaces/IErc20.sol";
+import "./interfaces/IMintable.sol";
 
-contract Erc20my {
+contract Erc20my is IErc20, IMintable {
 
     string public name;
     string public symbol;
@@ -11,6 +13,7 @@ contract Erc20my {
     uint256 public totalSupply;
 
     address public owner;
+    address public minter;
 
     mapping(address => uint256) private balances;
     mapping(address => mapping(address => uint256)) private allowed;
@@ -22,13 +25,16 @@ contract Erc20my {
       require(msg.sender == owner, "Only owner allowed");
       _;
    }
+    modifier onlyMinter {
+      require(msg.sender == minter, "Only minter allowed");
+      _;
+   }
 
     constructor(
         string memory _name,
         string memory _symbol,
         uint8 _decimals,
         uint256 _totalSupply) {
-        console.log("Deploying a Greeter with greeting:");
         name = _name;
         symbol = _symbol;
         decimals = _decimals;
@@ -37,11 +43,11 @@ contract Erc20my {
         owner = msg.sender;
     }
 
-    function balanceOf(address _owner) public view returns (uint256) {
+    function balanceOf(address _owner) external override(IErc20) view returns (uint256) {
         return balances[_owner];
     }
 
-    function transfer(address _to, uint256 _value) public returns (bool) {
+    function transfer(address _to, uint256 _value) external override(IErc20) returns (bool) {
         require(balances[msg.sender] >= _value, "Not enough balance");
         balances[_to] += _value;
         balances[msg.sender] -= _value;
@@ -49,7 +55,7 @@ contract Erc20my {
         return true;
     }
 
-    function transferFrom(address _from, address _to, uint256 _value) public returns (bool) {
+    function transferFrom(address _from, address _to, uint256 _value) external override(IErc20) returns (bool) {
         require(balances[_from] >= _value, "Not enough balance");
         require(allowed[_from][msg.sender]>= _value, "Not enough allowance");
         balances[_to] += _value;
@@ -59,24 +65,22 @@ contract Erc20my {
         return true;
     }
 
-    function approve(address _spender, uint256 _value) public returns (bool) {
-        allowed[msg.sender][_spender] = _value;
-        emit Approval(msg.sender, _spender, _value);
-        return true;
+    function approve(address _spender, uint256 _value) external override(IErc20) returns (bool) {
+        return _approve(msg.sender, _spender, _value);
     }
 
-    function allowance(address _owner, address _spender) public view returns (uint256) {
+    function allowance(address _owner, address _spender) external override(IErc20) view returns (uint256) {
         return allowed[_owner][_spender];
     }
 
-    function mint(address _to, uint256 _value) public onlyOwner returns (bool) {
+    function mint(address _to, uint256 _value) external override(IMintable) onlyMinter returns (bool) {
         totalSupply += _value;
         balances[_to] += _value;
         emit Transfer(address(0), _to, _value);
         return true;
     }
 
-    function burn(address _from, uint256 _value) public onlyOwner returns (bool) {
+    function burn(address _from, uint256 _value) external override(IMintable) onlyMinter returns (bool) {
         require(balances[_from] >= _value, "Not enough balance");
         totalSupply -= _value;
         balances[_from] -= _value;
@@ -85,12 +89,19 @@ contract Erc20my {
     }
 
     function increaseAllowance(address _spender, uint256 _value) public returns (bool) {
-        approve(_spender, allowed[msg.sender][_spender] + _value);
-        return true;
+        return _approve(msg.sender, _spender, allowed[msg.sender][_spender] + _value);
     }
     function decreaseAllowance(address _spender, uint256 _value) public returns (bool) {
         require(allowed[msg.sender][_spender] >= _value, "Not enough allowance");
-        approve(_spender, allowed[msg.sender][_spender] - _value);
+        return _approve(msg.sender, _spender, allowed[msg.sender][_spender] - _value);
+    }
+    function setMinter(address _minter) public onlyOwner {
+        minter = _minter;
+    }
+
+    function _approve(address _sender, address _spender, uint256 _value) private returns (bool) {
+        allowed[_sender][_spender] = _value;
+        emit Approval(_sender, _spender, _value);
         return true;
     }
 }

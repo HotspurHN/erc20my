@@ -94,19 +94,23 @@ describe("Erc20my", function () {
 
   describe("mint", function () {
     it("Should mint tokens", async function () {
+      let minterRoleTx = await Erc20myInstance.setMinter(owner.address);
+      await minterRoleTx.wait();
       let tx = await Erc20myInstance.mint(addr1.address, 100);
       await tx.wait();
       expect(await Erc20myInstance.balanceOf(addr1.address)).to.equal(100);
       expect(await Erc20myInstance.totalSupply()).to.equal(tokenTotalSupply + 100);
     });
 
-    it("Should be possible only for owner", async function () {
-      await expect(Erc20myInstance.connect(addr1).mint(addr1.address, 1)).to.be.revertedWith("VM Exception while processing transaction: reverted with reason string 'Only owner allowed'");
+    it("Should be possible only for minter", async function () {
+      await expect(Erc20myInstance.connect(addr1).mint(addr1.address, 1)).to.be.revertedWith("VM Exception while processing transaction: reverted with reason string 'Only minter allowed'");
     });
   });
 
   describe("burn", function () {
     it("Should burn tokens", async function () {
+      let minterRoleTx = await Erc20myInstance.setMinter(owner.address);
+      await minterRoleTx.wait();
       let tx = await Erc20myInstance.burn(owner.address, 100);
       await tx.wait();
       expect(await Erc20myInstance.balanceOf(owner.address)).to.equal(tokenTotalSupply - 100);
@@ -114,11 +118,13 @@ describe("Erc20my", function () {
     });
 
     it("Should fail when trying to burn more than balance", async function () {
+      let minterRoleTx = await Erc20myInstance.setMinter(owner.address);
+      await minterRoleTx.wait();
       await expect(Erc20myInstance.burn(owner.address, tokenTotalSupply + 1)).to.be.revertedWith("VM Exception while processing transaction: reverted with reason string 'Not enough balance'");
     });
 
-    it("Should be possible only for owner", async function () {
-      await expect(Erc20myInstance.connect(addr1).burn(owner.address, 1)).to.be.revertedWith("VM Exception while processing transaction: reverted with reason string 'Only owner allowed'");
+    it("Should be possible only for minter", async function () {
+      await expect(Erc20myInstance.connect(addr1).burn(owner.address, 1)).to.be.revertedWith("VM Exception while processing transaction: reverted with reason string 'Only minter allowed'");
     });
   });
 
