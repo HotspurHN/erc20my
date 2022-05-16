@@ -1,6 +1,7 @@
 Rinkeby contract 
 Erc20My: https://rinkeby.etherscan.io/address/0x158e339A1E75D13d87372c41B8a2442Dd4593a74
 StakeEmy: https://rinkeby.etherscan.io/address/0xdD4ad5e39666E0EdC360B626662cE2303dA99A0A
+pair: 0x8be8575d45b0b497a6f74531ace239913f9c4971
 
 Tasks:
 ```
