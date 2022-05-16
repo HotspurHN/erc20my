@@ -19,7 +19,6 @@ contract StakeEmy {
     address[] public accountsInPool;
     mapping(address => uint256) private balances;
     mapping(address => uint256) private claimed;
-    mapping(address => uint256) private toClaim;
     mapping(uint256 => Shares) private sharesPerPeriod;
     uint256 private lastPeriod;
 
@@ -56,14 +55,19 @@ contract StakeEmy {
         rewardToken = _rewarToken;
         pool = _pool;
         coolDown = _coolDown;
-        startPool = block.timestamp;
         owner = msg.sender;
     }
 
     function stake(uint256 _amount) public {
         require(lpToken != address(0), "lpToken not set");
-        require(IErc20(lpToken).balanceOf(msg.sender) >= _amount, "Not enough balance");
-        require(IErc20(lpToken).allowance(msg.sender, address(this)) >= _amount, "Not enough allowance"); 
+        require(
+            IErc20(lpToken).balanceOf(msg.sender) >= _amount,
+            "Not enough balance"
+        );
+        require(
+            IErc20(lpToken).allowance(msg.sender, address(this)) >= _amount,
+            "Not enough allowance"
+        );
         _updateShares();
         _updateAccountInPool(msg.sender);
         balances[msg.sender] += _amount;
@@ -76,7 +80,7 @@ contract StakeEmy {
         require(balances[msg.sender] >= _amount, "Not enough balance");
         _updateShares();
         _excludeAccountFromPool(msg.sender);
-        if (coolDown > 0 && balances[msg.sender] != 0 && allStaked > 0) {
+        if (coolDown > 0 && balances[msg.sender] > 0 && allStaked > 0) {
             _claim();
         }
         balances[msg.sender] -= _amount;
@@ -85,6 +89,7 @@ contract StakeEmy {
     }
 
     function claim() public {
+        require(lpToken != address(0), "lpToken not set");
         require(coolDown > 0, "Cooldown is not set");
         require(balances[msg.sender] > 0, "No balance to claim");
         _updateShares();
@@ -96,23 +101,20 @@ contract StakeEmy {
         for (uint256 i = claimed[msg.sender]; i < lastPeriod; i++) {
             uint256 toClaimValue = 0;
             Shares storage shares = sharesPerPeriod[i];
-            if (!shares.shares[msg.sender].claimed) {
-                if (shares.claimed + 1 == shares.allShares){
+            if (!shares.shares[msg.sender].claimed && shares.shares[msg.sender].amount > 0) {
+                if (shares.claimed + 1 == shares.allShares) {
                     toClaimValue = shares.pool;
-                }else{
+                } else {
                     toClaimValue = shares.shares[msg.sender].amount;
                 }
-
                 shares.pool -= toClaimValue;
                 shares.shares[msg.sender].claimed = true;
                 shares.claimed++;
                 totalClaimed += toClaimValue;
-                //console.log("Claimed:", msg.sender, toClaimValue);
             }
         }
         claimed[msg.sender] = lastPeriod;
-        if (totalClaimed > 0){
-            //console.log("Total claimed:", msg.sender, totalClaimed);
+        if (totalClaimed > 0) {
             IMintable(rewardToken).mint(msg.sender, totalClaimed);
         }
     }
@@ -127,11 +129,9 @@ contract StakeEmy {
     }
 
     function setLPToken(address _lpToken) public onlyOwnerOrAdmin {
+        require(lpToken == address(0), "lpToken already set");
         lpToken = _lpToken;
-    }
-
-    function setRewardToken(address _rewardToken) public onlyOwnerOrAdmin {
-        rewardToken = _rewardToken;
+        startPool = block.timestamp;
     }
 
     function setPool(uint256 _pool) public onlyOwnerOrAdmin {
@@ -153,16 +153,19 @@ contract StakeEmy {
                 for (uint256 i = lastPeriod; i < periods; i++) {
                     sharesPerPeriod[i].allShares++;
                     sharesPerPeriod[i].pool = pool;
-                    sharesPerPeriod[i].shares[accountsInPool[j]] = Share(accountsInPool[j], shareValue, false);
+                    sharesPerPeriod[i].shares[accountsInPool[j]] = Share(
+                        accountsInPool[j],
+                        shareValue,
+                        false
+                    );
                 }
             }
         }
-
         lastPeriod = periods;
     }
 
     function _excludeAccountFromPool(address exclude) private {
-        for (uint i = 0; i < accountsInPool.length; i++) {
+        for (uint256 i = 0; i < accountsInPool.length; i++) {
             if (accountsInPool[i] == exclude) {
                 accountsInPool[i] = accountsInPool[accountsInPool.length - 1];
                 accountsInPool.pop();
@@ -175,7 +178,7 @@ contract StakeEmy {
         accountsInPool.push(account);
     }
 
-    function _updateAccountInPool(address account) private{
+    function _updateAccountInPool(address account) private {
         _excludeAccountFromPool(account);
         _addAccountToPool(account);
     }

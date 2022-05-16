@@ -21,7 +21,7 @@ describe("StakeEmy", function () {
     const tokenTotalSupply: number = 1000000;
 
     const coolDown = 10;
-    const pool: number = 175000000;
+    const pool: number = 210000000;
 
     before(async () => {
         [owner, addr1, addr2] = await ethers.getSigners();
@@ -138,7 +138,6 @@ describe("StakeEmy", function () {
             const stake1 = 50;
             const stake2 = 25;
 
-
             await Erc20myInstance.approve(StakeEmyInstance.address, stake);
             await Erc20myInstance.transfer(addr1.address, stake1);
             await Erc20myInstance.transfer(addr2.address, stake2);
@@ -151,15 +150,16 @@ describe("StakeEmy", function () {
             const timestampBeforeStake1 = (await ethers.provider.getBlock(await ethers.provider.getBlockNumber())).timestamp;
             await StakeEmyInstance.connect(addr1).stake(stake1);
 
-            const timestampBeforeStake2 = (await ethers.provider.getBlock(await ethers.provider.getBlockNumber())).timestamp;
-            await StakeEmyInstance.connect(addr2).stake(stake2);
-
             await ethers.provider.send("evm_mine", [timestampBeforeStakeOwner + 3 * coolDown]);
             const tx1 = await StakeEmyInstance.claim();
             await tx1.wait();
             await ethers.provider.send("evm_mine", [timestampBeforeStake1 + 4 * coolDown]);
             const tx2 = await StakeEmyInstance.connect(addr1).claim();
             await tx2.wait();
+
+            const timestampBeforeStake2 = (await ethers.provider.getBlock(await ethers.provider.getBlockNumber())).timestamp;
+            await StakeEmyInstance.connect(addr2).stake(stake2);
+
             await ethers.provider.send("evm_mine", [timestampBeforeStake2 + 5 * coolDown]);
             const tx3 = await StakeEmyInstance.connect(addr2).claim();
             await tx3.wait();
@@ -168,17 +168,10 @@ describe("StakeEmy", function () {
             const balance2 = await Erc20myInstance.balanceOf(addr2.address);
             const balanceOwner = await Erc20myInstance.balanceOf(owner.address);
 
-            const bo = initialBalance
-                .sub(stake)
-                .sub(stake1)
-                .sub(stake2)
-                .add(pool)
-                .add(Math.round(pool * stake / (stake + stake1 + stake2)))
-                .add(Math.round(pool * stake / (stake + stake1 + stake2)));
-
-            const b1 = Math.round(pool * stake1 * 4 / (stake + stake1 + stake2));
-
+            const bo = initialBalance.sub(stake).sub(stake1).sub(stake2).add(Math.round(pool * 3 * stake / (stake + stake1)));
+            const b1 = Math.round(pool * stake1 * 4 / (stake + stake1));
             const b2 = Math.round(pool * stake2 * 5 / (stake + stake1 + stake2));
+            console.log(balance1, b1);
 
             expect(1.01).to.above(bo.sub(balanceOwner).toNumber());
             expect(-1.01).to.below(bo.sub(balanceOwner).toNumber());
@@ -248,14 +241,5 @@ describe("StakeEmy", function () {
             await StakeEmyInstance.connect(addr1).setLPToken(Erc20myInstance.address);
         });
     });
-
-    describe("Set reward token", function () {
-        it("Should set reward token", async function () {
-            await StakeEmyInstance.setAdmin(addr1.address);
-            await StakeEmyInstance.connect(addr1).setRewardToken(Erc20myInstance.address);
-            expect(await StakeEmyInstance.rewardToken()).to.equal(Erc20myInstance.address);
-        });
-    });
-
 
 });

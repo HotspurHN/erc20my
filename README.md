@@ -17,4 +17,5 @@ ETHERSCAN=""
 
 deploy 
 `npx hardhat run --network rinkeby scripts/deploy.ts`
-`npx hardhat verify --network rinkeby --constructor-args arguments.js 0xf122f67A14172bC0Aead80599FA80e08f750eaf1`
+`npx hardhat verify --network rinkeby --constructor-args arguments.js 0x882E2197e5d330180c6376964c56120A40188e8e`
+`npx hardhat verify --network rinkeby --constructor-args arguments-staking.js 0x9d492c8717377c3e9Bc19eB6955C787225Cf60bb`
