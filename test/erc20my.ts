@@ -149,4 +149,16 @@ describe("Erc20my", function () {
       await expect(Erc20myInstance.decreaseAllowance(addr1.address, 101)).to.be.revertedWith("VM Exception while processing transaction: reverted with reason string 'Not enough allowance'");
     });
   });
+
+  describe("setMinter", function () {
+    it("Should set minter", async function () {
+      let tx = await Erc20myInstance.setMinter(addr1.address);
+      await tx.wait();
+      expect(await Erc20myInstance.minter()).to.equal(addr1.address);
+    });
+
+    it("Should fail when trying to set minter to non-owner", async function () {
+      await expect(Erc20myInstance.connect(addr1).setMinter(addr1.address)).to.be.revertedWith("VM Exception while processing transaction: reverted with reason string 'Only owner allowed'");
+    });
+  });
 });

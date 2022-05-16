@@ -1,45 +1,76 @@
 import { expect } from "chai";
 import { StakeEmy } from "../typechain-types/StakeEmy";
 import { Erc20my } from "../typechain-types/Erc20my";
+import { IUniswapV2Router02 } from "../typechain-types/uniswap/IUniswapV2Router02";
+import { IUniswapV2Factory } from "../typechain-types/uniswap/IUniswapV2Factory";
+import { IErc20 } from "../typechain-types/interfaces/IErc20";
 const { ethers } = require("hardhat");
+import tools from "./tools";
 
 describe("StakeEmy", function () {
+    const uniswapRouterAddress: string = '0x7a250d5630B4cF539739dF2C5dAcb4c659F2488D';
+    const uniswapFactoryAddress: string = '0x5C69bEe701ef814a2B6a3EDD4B1652CB9cc5aA6f';
+    let WETH: string = '0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2';
+
     let owner: any;
     let addr1: any;
     let addr2: any;
-
-    let contractAddress: any;
 
     let StakeEmy: any;
     let StakeEmyInstance: StakeEmy;
     let Erc20my: any;
     let Erc20myInstance: Erc20my;
+    let Router: IUniswapV2Router02;
+    let Factory: IUniswapV2Factory;
+    let PairErc20: IErc20;
 
     const tokenName: string = "Erc20my";
     const tokenSymbol: string = "EMY";
     const tokenDecimals: number = 18;
-    const tokenTotalSupply: number = 1000000;
+    const tokenTotalSupply: any = ethers.BigNumber.from("1000000000000000000000000");
 
-    const coolDown = 10;
+    const coolDown: number = 10;
+    const freeze: number = 20;
     const pool: number = 210000000;
+
+    const _setLPToken = async () => {
+        const time = Math.floor(Date.now() / 1000) + 200000;
+        const deadline = ethers.BigNumber.from(time);
+        let approveTx = await Erc20myInstance.approve(uniswapRouterAddress,
+            ethers.BigNumber.from("1000000000000000000000000"));
+        await approveTx.wait();
+
+        const liquidity = await Router.addLiquidityETH(
+            Erc20myInstance.address,
+            ethers.BigNumber.from('10000000000000000000'),
+            ethers.BigNumber.from('10000000000000000000'),
+            ethers.BigNumber.from('10000000000000000'),
+            owner.address,
+            deadline, { value: ethers.BigNumber.from('10000000000000000') });
+        await liquidity.wait();
+
+        const pair = await Factory.getPair(Erc20myInstance.address, WETH);
+        let setLPTokenTx = await StakeEmyInstance.setLPToken(pair);
+        await setLPTokenTx.wait();
+
+        PairErc20 = await ethers.getContractAt("IErc20", pair);
+    }
 
     before(async () => {
         [owner, addr1, addr2] = await ethers.getSigners();
         StakeEmy = await ethers.getContractFactory("StakeEmy");
         Erc20my = await ethers.getContractFactory("Erc20my");
+        Router = await ethers.getContractAt("IUniswapV2Router02", uniswapRouterAddress);
+        Factory = await ethers.getContractAt("IUniswapV2Factory", uniswapFactoryAddress);
     });
 
     beforeEach(async () => {
         Erc20myInstance = await Erc20my.deploy(tokenName, tokenSymbol, tokenDecimals, tokenTotalSupply);
         await Erc20myInstance.deployed();
-        StakeEmyInstance = await StakeEmy.deploy(Erc20myInstance.address, pool, coolDown);
+        StakeEmyInstance = await StakeEmy.deploy(Erc20myInstance.address, pool, coolDown, freeze);
         await StakeEmyInstance.deployed();
-        contractAddress = StakeEmyInstance.address;
-        await owner.sendTransaction({ to: contractAddress, value: ethers.utils.parseEther("0.1") });
+        await owner.sendTransaction({ to: StakeEmyInstance.address, value: ethers.utils.parseEther("0.1") });
         await Erc20myInstance.setMinter(StakeEmyInstance.address);
-    });
-
-    afterEach(async () => {
     });
 
     describe("balanceOf", function () {
@@ -50,10 +81,8 @@ describe("StakeEmy", function () {
 
     describe("stake", function () {
         it("Should stake tokens", async function () {
-            let setLPTokenTx = await StakeEmyInstance.setLPToken(Erc20myInstance.address);
-            await setLPTokenTx.wait();
-
-            let approveTx = await Erc20myInstance.approve(StakeEmyInstance.address, 100);
+            await _setLPToken();
+            let approveTx = await PairErc20.approve(StakeEmyInstance.address, 100);
             await approveTx.wait();
             let tx = await StakeEmyInstance.stake(100);
             await tx.wait();
@@ -62,15 +91,14 @@ describe("StakeEmy", function () {
         });
 
         it("Should stake tokens with a different amount", async function () {
-            let setLPTokenTx = await StakeEmyInstance.setLPToken(Erc20myInstance.address);
-            await setLPTokenTx.wait();
-            
-            let approveTx = await Erc20myInstance.approve(StakeEmyInstance.address, 100);
+            await _setLPToken();
+
+            let approveTx = await PairErc20.approve(StakeEmyInstance.address, 100);
             await approveTx.wait();
             let tx = await StakeEmyInstance.stake(100);
             await tx.wait();
-            
-            approveTx = await Erc20myInstance.approve(StakeEmyInstance.address, 100);
+
+            approveTx = await PairErc20.approve(StakeEmyInstance.address, 100);
             await approveTx.wait();
             tx = await StakeEmyInstance.stake(100);
             await tx.wait();
@@ -80,25 +108,84 @@ describe("StakeEmy", function () {
         });
 
         it("Should fail if not enough tokens are approved", async function () {
-            let setLPTokenTx = await StakeEmyInstance.setLPToken(Erc20myInstance.address);
+            let setLPTokenTx = await StakeEmyInstance.setLPToken(PairErc20.address);
             await setLPTokenTx.wait();
-            
+
             await expect(StakeEmyInstance.stake(100)).to.be.revertedWith("VM Exception while processing transaction: reverted with reason string 'Not enough allowance'");
         });
 
         it("Should fail if lpToken not set", async function () {
             await expect(StakeEmyInstance.stake(100)).to.be.revertedWith("VM Exception while processing transaction: reverted with reason string 'lpToken not set'");
         });
+
+        it("Should fail if not enough tokens are available", async function () {
+            await _setLPToken();
+            let approveTx = await PairErc20.connect(addr1).approve(StakeEmyInstance.address, 100);
+            await approveTx.wait();
+            await expect(StakeEmyInstance.connect(addr1).stake(100)).to.be.revertedWith("VM Exception while processing transaction: reverted with reason string 'Not enough balance'");
+        });
+    });
+
+    describe("unstake", function () {
+        it("Should unstake tokens", async function () {
+            await _setLPToken();
+
+            const stake = 100;
+            await PairErc20.approve(StakeEmyInstance.address, stake);
+            await StakeEmyInstance.stake(stake);
+            await tools._increaseTime(freeze);
+            await StakeEmyInstance.unstake(stake);
+            expect(await StakeEmyInstance.balanceOf(owner.address)).to.equal(0);
+            expect(await StakeEmyInstance.allStaked()).to.equal(0);
+        });
+
+        it("Should unstake & claim tokens", async function () {
+            await _setLPToken();
+
+            const stake = 100;
+            const initialBalance = await Erc20myInstance.balanceOf(owner.address) || 0;
+            await PairErc20.approve(StakeEmyInstance.address, stake);
+            const timestampBeforeStakeOwner = (await ethers.provider.getBlock(await ethers.provider.getBlockNumber())).timestamp;
+            await StakeEmyInstance.stake(stake);
+
+            await tools._mineBlockByTime(timestampBeforeStakeOwner + 3 * coolDown);
+
+            let tx = await StakeEmyInstance.unstake(stake);
+            await tx.wait();
+
+            expect(await Erc20myInstance.balanceOf(owner.address)).to.equal(initialBalance.add(pool * 3));
+        });
+
+        it("Should not unstake if not enough time has passed", async function () {
+            await _setLPToken();
+
+            const stake = 100;
+            await PairErc20.approve(StakeEmyInstance.address, stake);
+            await StakeEmyInstance.stake(stake);
+
+            await expect(StakeEmyInstance.unstake(stake)).to.be.revertedWith("VM Exception while processing transaction: reverted with reason string 'Tokens still frozen'");
+        });
+
+        it ("Should fail if not enough tokens are staked", async function () {	
+            await _setLPToken();
+
+            const stake = 100;
+            await PairErc20.approve(StakeEmyInstance.address, stake);
+            await expect(StakeEmyInstance.unstake(stake)).to.be.revertedWith("VM Exception while processing transaction: reverted with reason string 'Not enough balance'");
+        });
+
+        it ("Should fail if not set lpToken", async function () {
+            await expect(StakeEmyInstance.unstake(100)).to.be.revertedWith("VM Exception while processing transaction: reverted with reason string 'lpToken not set'");
+        });
     });
 
     describe("claim", function () {
         it("Should claim tokens", async function () {
-            let setLPTokenTx = await StakeEmyInstance.setLPToken(Erc20myInstance.address);
-            await setLPTokenTx.wait();
+            await _setLPToken();
             const initialBalance = await Erc20myInstance.balanceOf(owner.address) || 0;
             const stake = 100;
 
-            await Erc20myInstance.approve(StakeEmyInstance.address, stake);
+            await PairErc20.approve(StakeEmyInstance.address, stake);
             await StakeEmyInstance.stake(stake);
 
             await ethers.provider.send("evm_increaseTime", [coolDown]);
@@ -106,43 +193,40 @@ describe("StakeEmy", function () {
 
             let tx2 = await StakeEmyInstance.claim();
             await tx2.wait();
-            expect(await Erc20myInstance.balanceOf(owner.address)).to.equal(initialBalance.sub(stake).add(pool));
+            expect(await Erc20myInstance.balanceOf(owner.address)).to.equal(initialBalance.add(pool));
         });
 
         it("Should not claim tokens if not enough time has passed", async function () {
-            let setLPTokenTx = await StakeEmyInstance.setLPToken(Erc20myInstance.address);
-            await setLPTokenTx.wait();
+            await _setLPToken();
             const initialBalance = await Erc20myInstance.balanceOf(owner.address) || 0;
             const stake = 100;
 
-            await Erc20myInstance.approve(StakeEmyInstance.address, stake);
+            await PairErc20.approve(StakeEmyInstance.address, stake);
             await StakeEmyInstance.stake(stake);
 
             let tx2 = await StakeEmyInstance.claim();
             await tx2.wait();
-            expect(await Erc20myInstance.balanceOf(owner.address)).to.equal(initialBalance.sub(stake));
+            expect(await Erc20myInstance.balanceOf(owner.address)).to.equal(initialBalance);
         });
 
         it("Should not claim tokens if not enough tokens are staked", async function () {
-            let setLPTokenTx = await StakeEmyInstance.setLPToken(Erc20myInstance.address);
-            await setLPTokenTx.wait();
+            await _setLPToken();
             await expect(StakeEmyInstance.claim()).to.be.revertedWith("VM Exception while processing transaction: reverted with reason string 'No balance to claim'");
         });
 
         it("Should claim tokens devided by the number of stakers", async function () {
-            let setLPTokenTx = await StakeEmyInstance.setLPToken(Erc20myInstance.address);
-            await setLPTokenTx.wait();
+            await _setLPToken();
 
             const initialBalance = await Erc20myInstance.balanceOf(owner.address) || 0;
             const stake = 100;
             const stake1 = 50;
             const stake2 = 25;
 
-            await Erc20myInstance.approve(StakeEmyInstance.address, stake);
-            await Erc20myInstance.transfer(addr1.address, stake1);
-            await Erc20myInstance.transfer(addr2.address, stake2);
-            await Erc20myInstance.connect(addr1).approve(StakeEmyInstance.address, stake1);
-            await Erc20myInstance.connect(addr2).approve(StakeEmyInstance.address, stake2);
+            await PairErc20.approve(StakeEmyInstance.address, stake);
+            await PairErc20.transfer(addr1.address, stake1);
+            await PairErc20.transfer(addr2.address, stake2);
+            await PairErc20.connect(addr1).approve(StakeEmyInstance.address, stake1);
+            await PairErc20.connect(addr2).approve(StakeEmyInstance.address, stake2);
 
             const timestampBeforeStakeOwner = (await ethers.provider.getBlock(await ethers.provider.getBlockNumber())).timestamp;
             await StakeEmyInstance.stake(stake);
@@ -150,17 +234,18 @@ describe("StakeEmy", function () {
             const timestampBeforeStake1 = (await ethers.provider.getBlock(await ethers.provider.getBlockNumber())).timestamp;
             await StakeEmyInstance.connect(addr1).stake(stake1);
 
-            await ethers.provider.send("evm_mine", [timestampBeforeStakeOwner + 3 * coolDown]);
+            await tools._mineBlockByTime(timestampBeforeStakeOwner + 3 * coolDown);
             const tx1 = await StakeEmyInstance.claim();
             await tx1.wait();
-            await ethers.provider.send("evm_mine", [timestampBeforeStake1 + 4 * coolDown]);
+
+            await tools._mineBlockByTime(timestampBeforeStake1 + 4 * coolDown);
             const tx2 = await StakeEmyInstance.connect(addr1).claim();
             await tx2.wait();
 
             const timestampBeforeStake2 = (await ethers.provider.getBlock(await ethers.provider.getBlockNumber())).timestamp;
             await StakeEmyInstance.connect(addr2).stake(stake2);
 
-            await ethers.provider.send("evm_mine", [timestampBeforeStake2 + 5 * coolDown]);
+            await tools._mineBlockByTime(timestampBeforeStake2 + 5 * coolDown);
             const tx3 = await StakeEmyInstance.connect(addr2).claim();
             await tx3.wait();
 
@@ -168,10 +253,9 @@ describe("StakeEmy", function () {
             const balance2 = await Erc20myInstance.balanceOf(addr2.address);
             const balanceOwner = await Erc20myInstance.balanceOf(owner.address);
 
-            const bo = initialBalance.sub(stake).sub(stake1).sub(stake2).add(Math.round(pool * 3 * stake / (stake + stake1)));
+            const bo = initialBalance.add(Math.round(pool * 3 * stake / (stake + stake1)));
             const b1 = Math.round(pool * stake1 * 4 / (stake + stake1));
             const b2 = Math.round(pool * stake2 * 5 / (stake + stake1 + stake2));
-            console.log(balance1, b1);
 
             expect(1.01).to.above(bo.sub(balanceOwner).toNumber());
             expect(-1.01).to.below(bo.sub(balanceOwner).toNumber());
@@ -180,6 +264,16 @@ describe("StakeEmy", function () {
             expect(1.01).to.above(balance2.sub(b2).toNumber());
             expect(-1.01).to.below(balance2.sub(b2).toNumber());
         });
+
+        it ("Should not be possible to claim is lpToken is not set", async function () {
+            await expect(StakeEmyInstance.claim()).to.be.revertedWith("VM Exception while processing transaction: revert");
+        });
+
+        it("Should not be possible to claim if coolDown is not set", async function () {
+            await StakeEmyInstance.setLPToken(Erc20myInstance.address);
+            await StakeEmyInstance.setCooldown(0);
+            await expect(StakeEmyInstance.claim()).to.be.revertedWith("VM Exception while processing transaction: revert");
+        });
     });
 
     describe("Set LP token", function () {
@@ -187,44 +281,21 @@ describe("StakeEmy", function () {
             await StakeEmyInstance.setLPToken(Erc20myInstance.address);
             expect(await StakeEmyInstance.lpToken()).to.equal(Erc20myInstance.address);
         });
+
+        it ("Should not be possible to set LP token if not admin or owner", async function () {
+            await expect(StakeEmyInstance.connect(addr1).setLPToken(Erc20myInstance.address)).to.be.revertedWith("VM Exception while processing transaction: revert");
+        });
+
+        it ("Should not be possible to set lp token if it is already set", async function () {
+            await StakeEmyInstance.setLPToken(Erc20myInstance.address);
+            await expect(StakeEmyInstance.setLPToken(Erc20myInstance.address)).to.be.revertedWith("VM Exception while processing transaction: revert");
+        });
     });
 
     describe("Set pool", function () {
         it("Should set pool", async function () {
             await StakeEmyInstance.setPool(100);
             expect(await StakeEmyInstance.pool()).to.equal(100);
-        });
-    });
-
-    describe("unstakes", function () {
-        it("Should unstake tokens", async function () {
-            let setLPTokenTx = await StakeEmyInstance.setLPToken(Erc20myInstance.address);
-            await setLPTokenTx.wait();
-            
-            const stake = 100;
-            await Erc20myInstance.approve(StakeEmyInstance.address, stake);
-            await StakeEmyInstance.stake(stake);
-            await StakeEmyInstance.unstake(stake);
-            expect(await StakeEmyInstance.balanceOf(owner.address)).to.equal(0);
-            expect(await StakeEmyInstance.allStaked()).to.equal(0);
-        });
-
-        it("Should unstake & claim tokens", async function () {
-            let setLPTokenTx = await StakeEmyInstance.setLPToken(Erc20myInstance.address);
-            await setLPTokenTx.wait();
-            
-            const stake = 100;
-            const initialBalance = await Erc20myInstance.balanceOf(owner.address) || 0;
-            await Erc20myInstance.approve(StakeEmyInstance.address, stake);
-            const timestampBeforeStakeOwner = (await ethers.provider.getBlock(await ethers.provider.getBlockNumber())).timestamp;
-            await StakeEmyInstance.stake(stake);
-
-            await ethers.provider.send("evm_mine", [timestampBeforeStakeOwner + 3 * coolDown]);
-
-            let tx = await StakeEmyInstance.unstake(stake);
-            await tx.wait();
-
-            expect(await Erc20myInstance.balanceOf(owner.address)).to.equal(initialBalance.add(pool * 3));
         });
     });
 
@@ -239,6 +310,10 @@ describe("StakeEmy", function () {
         it("Should set admin", async function () {
             await StakeEmyInstance.setAdmin(addr1.address);
             await StakeEmyInstance.connect(addr1).setLPToken(Erc20myInstance.address);
+        });
+
+        it("Should not be possible to set admin if not owner", async function () {
+            await expect(StakeEmyInstance.connect(addr1).setAdmin(addr2.address)).to.be.revertedWith("VM Exception while processing transaction: revert");
         });
     });
 

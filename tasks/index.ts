@@ -62,10 +62,38 @@ export function tasks() {
       await instance.setLPToken(address);
     });
 
+  task("set Cooldown", "set Cooldown")
+    .addParam("value", "integer")
+    .setAction(async ({ value }, hre) => {
+      const instance = await initStakeBlockchainTask(hre);
+      await instance.setCooldown(value);
+    });
+
+    task("set Pool", "set Pool")
+      .addParam("value", "integer")
+      .setAction(async ({ value }, hre) => {
+        const instance = await initStakeBlockchainTask(hre);
+        await instance.setPool(value);
+      });
+
   task("stake", "Stake lp tokens")
     .addParam("value", "integer")
     .setAction(async ({ value }, hre) => {
       const instance = await initStakeBlockchainTask(hre);
       await instance.stake(value);
+    });
+
+  task("unstake", "Unstake lp tokens")
+    .addParam("value", "integer")
+    .setAction(async ({ value }, hre) => {
+      const instance = await initStakeBlockchainTask(hre);
+      await instance.unstake(value);
+    });
+
+  task("claim", "Claim reward")
+    .addParam("value", "integer")
+    .setAction(async ({ value }, hre) => {
+      const instance = await initStakeBlockchainTask(hre);
+      await instance.claim(value);
     });
 }

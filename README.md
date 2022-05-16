@@ -15,6 +15,9 @@ CONTRACT=""
 ETHERSCAN=""
 ```
 
+`npx hardhat node --fork https://eth-mainnet.alchemyapi.io/v2/<key>`
+`npx hardhat coverage --network hardhat`
+
 deploy 
 `npx hardhat run --network rinkeby scripts/deploy.ts`
 `npx hardhat verify --network rinkeby --constructor-args arguments.js 0x882E2197e5d330180c6376964c56120A40188e8e`
