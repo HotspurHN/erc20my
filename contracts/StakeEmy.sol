@@ -121,7 +121,7 @@ contract StakeEmy {
         _updateShares();
         pool = _pool;
     }
-    
+
     function setAdmin(address _admin) public onlyOwner {
         admin = _admin;
     }

@@ -1,4 +1,6 @@
-Rinkeby contract example: https://rinkeby.etherscan.io/address/0xf122f67A14172bC0Aead80599FA80e08f750eaf1
+Rinkeby contract 
+Erc20My: https://rinkeby.etherscan.io/address/0x158e339A1E75D13d87372c41B8a2442Dd4593a74
+StakeEmy: https://rinkeby.etherscan.io/address/0xdD4ad5e39666E0EdC360B626662cE2303dA99A0A
 
 Tasks:
 ```
@@ -16,9 +18,12 @@ ETHERSCAN=""
 ```
 
 `npx hardhat node --fork https://eth-mainnet.alchemyapi.io/v2/<key>`
+`npx hardhat test --network hardhat`
 `npx hardhat coverage --network hardhat`
 
 deploy 
 `npx hardhat run --network rinkeby scripts/deploy.ts`
-`npx hardhat verify --network rinkeby --constructor-args arguments.js 0x882E2197e5d330180c6376964c56120A40188e8e`
-`npx hardhat verify --network rinkeby --constructor-args arguments-staking.js 0x9d492c8717377c3e9Bc19eB6955C787225Cf60bb`
+
+`npx hardhat verify --network rinkeby --constructor-args arguments.js 0x158e339A1E75D13d87372c41B8a2442Dd4593a74`
+
+`npx hardhat verify --network rinkeby --constructor-args arguments-staking.js 0xdD4ad5e39666E0EdC360B626662cE2303dA99A0A`
