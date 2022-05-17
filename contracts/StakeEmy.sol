@@ -21,21 +21,12 @@ contract StakeEmy {
     mapping(address => uint256) private lastValuePerAddress;
 
     uint256 public allStaked;
-    LPValuePerPeriod[] private lpValuePerPeriod;
     mapping(address => uint256) private balances;
     mapping(address => uint256) private startStaking;
-    mapping(uint256 => mapping(address => uint256)) private sharesPerPeriods;
-    mapping(address => uint256) private lastPeriodClaim;
 
     event Stake(address indexed _from, uint256 _value);
     event Unstake(address indexed _to, uint256 _value);
     event Claim(address indexed _to, uint256 _value);
-
-    struct LPValuePerPeriod {
-        uint256 lpValue;
-        uint256 periodStart;
-        uint256 periodEnd;
-    }
 
     modifier onlyOwner() {
         require(msg.sender == owner, "Only owner allowed");
@@ -128,7 +119,7 @@ contract StakeEmy {
     function _claim() private {
         uint256 totalClaimed = 0;
         if (allStaked != 0) {
-            lastValue += (pool * (_currentPeriod() - lastUpdate)) / allStaked;
+            lastValue += pool * (_currentPeriod() - lastUpdate) / allStaked;
             lastUpdate = _currentPeriod();
             totalClaimed = (lastValue - lastValuePerAddress[msg.sender]) * balanceOf(msg.sender);
             lastValuePerAddress[msg.sender] = lastValue;
