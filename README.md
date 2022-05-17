@@ -1,7 +1,9 @@
 Rinkeby contract 
-Erc20My: https://rinkeby.etherscan.io/address/0x158e339A1E75D13d87372c41B8a2442Dd4593a74
-StakeEmy: https://rinkeby.etherscan.io/address/0xdD4ad5e39666E0EdC360B626662cE2303dA99A0A
-pair: 0x8be8575d45b0b497a6f74531ace239913f9c4971
+Erc20My: https://rinkeby.etherscan.io/address/0xfdDd2E0faEdAFC751151D46dCF4c014E45953561
+
+StakeEmy: https://rinkeby.etherscan.io/address/0xcaFDF7e5876cDdcc6d3A3556fcee0327f05e4E5A
+
+pair: 0x5c0e0726b94ec754c7b85c3f1f534779d3808795
 
 Tasks:
 ```
@@ -25,6 +27,6 @@ ETHERSCAN=""
 deploy 
 `npx hardhat run --network rinkeby scripts/deploy.ts`
 
-`npx hardhat verify --network rinkeby --constructor-args arguments.js 0x158e339A1E75D13d87372c41B8a2442Dd4593a74`
+`npx hardhat verify --network rinkeby --constructor-args arguments.js 0xfdDd2E0faEdAFC751151D46dCF4c014E45953561`
 
-`npx hardhat verify --network rinkeby --constructor-args arguments-staking.js 0xdD4ad5e39666E0EdC360B626662cE2303dA99A0A`
+`npx hardhat verify --network rinkeby --constructor-args arguments-staking.js 0xcaFDF7e5876cDdcc6d3A3556fcee0327f05e4E5A`

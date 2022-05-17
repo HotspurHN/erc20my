@@ -2,16 +2,13 @@ import { expect } from "chai";
 import { StakeEmy } from "../typechain-types/StakeEmy";
 import { Erc20my } from "../typechain-types/Erc20my";
 import { IUniswapV2Router02 } from "../typechain-types/uniswap/IUniswapV2Router02";
-import { IUniswapV2Factory } from "../typechain-types/uniswap/IUniswapV2Factory";
 import { IErc20 } from "../typechain-types/interfaces/IErc20";
 const { ethers } = require("hardhat");
-import tools from "./tools";
+import testTools from "./tools";
+import tools from "../scripts/tools";
+import constants from "../scripts/constants";
 
 describe("StakeEmy", function () {
-    const uniswapRouterAddress: string = '0x7a250d5630B4cF539739dF2C5dAcb4c659F2488D';
-    const uniswapFactoryAddress: string = '0x5C69bEe701ef814a2B6a3EDD4B1652CB9cc5aA6f';
-    let WETH: string = '0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2';
-
     let owner: any;
     let addr1: any;
     let addr2: any;
@@ -21,7 +18,6 @@ describe("StakeEmy", function () {
     let Erc20my: any;
     let Erc20myInstance: Erc20my;
     let Router: IUniswapV2Router02;
-    let Factory: IUniswapV2Factory;
     let PairErc20: IErc20;
 
     const tokenName: string = "Erc20my";
@@ -34,34 +30,14 @@ describe("StakeEmy", function () {
     const pool: number = 210000000;
 
     const _setLPToken = async () => {
-        const time = Math.floor(Date.now() / 1000) + 200000;
-        const deadline = ethers.BigNumber.from(time);
-        let approveTx = await Erc20myInstance.approve(uniswapRouterAddress,
-            ethers.BigNumber.from("1000000000000000000000000"));
-        await approveTx.wait();
-
-        const liquidity = await Router.addLiquidityETH(
-            Erc20myInstance.address,
-            ethers.BigNumber.from('10000000000000000000'),
-            ethers.BigNumber.from('10000000000000000000'),
-            ethers.BigNumber.from('10000000000000000'),
-            owner.address,
-            deadline, { value: ethers.BigNumber.from('10000000000000000') });
-        await liquidity.wait();
-
-        const pair = await Factory.getPair(Erc20myInstance.address, WETH);
-        let setLPTokenTx = await StakeEmyInstance.setLPToken(pair);
-        await setLPTokenTx.wait();
-
-        PairErc20 = await ethers.getContractAt("IErc20", pair);
+        PairErc20 = await tools._setLPToken(Erc20myInstance, StakeEmyInstance, Router, owner.address, '10000000000000000000', '10000000000000000');
     }
 
     before(async () => {
         [owner, addr1, addr2] = await ethers.getSigners();
         StakeEmy = await ethers.getContractFactory("StakeEmy");
         Erc20my = await ethers.getContractFactory("Erc20my");
-        Router = await ethers.getContractAt("IUniswapV2Router02", uniswapRouterAddress);
-        Factory = await ethers.getContractAt("IUniswapV2Factory", uniswapFactoryAddress);
+        Router = await ethers.getContractAt("IUniswapV2Router02", constants.uniswapRouterAddress);
     });
 
     beforeEach(async () => {
@@ -125,7 +101,7 @@ describe("StakeEmy", function () {
             const stake = 100;
             await PairErc20.approve(StakeEmyInstance.address, stake);
             await StakeEmyInstance.stake(stake);
-            await tools._increaseTime(freeze);
+            await testTools._increaseTime(freeze);
             await StakeEmyInstance.unstake(stake);
             expect(await StakeEmyInstance.balanceOf(owner.address)).to.equal(0);
             expect(await StakeEmyInstance.allStaked()).to.equal(0);
@@ -140,7 +116,7 @@ describe("StakeEmy", function () {
             const timestampBeforeStakeOwner = (await ethers.provider.getBlock(await ethers.provider.getBlockNumber())).timestamp;
             await StakeEmyInstance.stake(stake);
 
-            await tools._mineBlockByTime(timestampBeforeStakeOwner + 3 * coolDown);
+            await testTools._mineBlockByTime(timestampBeforeStakeOwner + 3 * coolDown);
 
             let tx = await StakeEmyInstance.unstake(stake);
             await tx.wait();
@@ -223,16 +199,16 @@ describe("StakeEmy", function () {
             const timestampBeforeStake1 = (await ethers.provider.getBlock(await ethers.provider.getBlockNumber())).timestamp;
             await StakeEmyInstance.connect(addr1).stake(stake1);
 
-            await tools._mineBlockByTime(timestampBeforeStakeOwner + 3 * coolDown);
+            await testTools._mineBlockByTime(timestampBeforeStakeOwner + 3 * coolDown);
             await StakeEmyInstance.claim();
 
-            await tools._mineBlockByTime(timestampBeforeStake1 + 4 * coolDown);
+            await testTools._mineBlockByTime(timestampBeforeStake1 + 4 * coolDown);
             await StakeEmyInstance.connect(addr1).claim();
 
             const timestampBeforeStake2 = (await ethers.provider.getBlock(await ethers.provider.getBlockNumber())).timestamp;
             await StakeEmyInstance.connect(addr2).stake(stake2);
 
-            await tools._mineBlockByTime(timestampBeforeStake2 + 5 * coolDown);
+            await testTools._mineBlockByTime(timestampBeforeStake2 + 5 * coolDown);
             await StakeEmyInstance.connect(addr2).claim();
             await StakeEmyInstance.claim();
 

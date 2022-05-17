@@ -25,6 +25,7 @@ export default [
         .setAction(async ({ to, value }, hre) => {
             const instance = await initBlockchainTask(hre);
             await instance.transfer(to, value);
+            hre.tasks
         }),
 
     task("transferfrom", "Transfer tokens from another account")
