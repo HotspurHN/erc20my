@@ -220,12 +220,9 @@ describe("StakeEmy", function () {
             const b1 = Math.round(pool * stake1 * 4 / (stake + stake1));
             const b2 = Math.round(pool * stake2 * 5 / (stake + stake1 + stake2));
 
-            expect(1.01).to.above(bo.sub(balanceOwner).toNumber());
-            expect(-1.01).to.below(bo.sub(balanceOwner).toNumber());
-            expect(1.01).to.above(balance1.sub(b1).toNumber());
-            expect(-1.01).to.below(balance1.sub(b1).toNumber());
-            expect(1.01).to.above(balance2.sub(b2).toNumber());
-            expect(-1.01).to.below(balance2.sub(b2).toNumber());
+            expect(0).to.equals(bo.sub(balanceOwner).toNumber());
+            expect(0).to.equals(balance1.sub(b1).toNumber());
+            expect(0).to.equals(balance2.sub(b2).toNumber());
         });
 
         it ("Should not be possible to claim is lpToken is not set", async function () {

@@ -91,7 +91,6 @@ contract StakeEmy {
 
     function claim() public {
         require(lpToken != address(0), "lpToken not set");
-        require(coolDown > 0, "Cooldown is not set");
         require(balances[msg.sender] > 0, "No balance to claim");
         _claim();
     }
