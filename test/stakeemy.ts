@@ -142,8 +142,8 @@ describe("StakeEmy", function () {
 
             await tools._mineBlockByTime(timestampBeforeStakeOwner + 3 * coolDown);
 
-            await StakeEmyInstance.unstake(stake);
-
+            let tx = await StakeEmyInstance.unstake(stake);
+            await tx.wait();
             expect(await Erc20myInstance.balanceOf(owner.address)).to.equal(initialBalance.add(pool * 3));
         });
 
@@ -239,7 +239,7 @@ describe("StakeEmy", function () {
             const balance2 = await Erc20myInstance.balanceOf(addr2.address);
             const balanceOwner = await Erc20myInstance.balanceOf(owner.address);
 
-            const bo = initialBalance.add(Math.round(pool * 3 * stake / (stake + stake1)));
+            const bo = initialBalance.add(Math.round(pool * stake * 3 / (stake + stake1)));
             const b1 = Math.round(pool * stake1 * 4 / (stake + stake1));
             const b2 = Math.round(pool * stake2 * 5 / (stake + stake1 + stake2));
 
@@ -253,12 +253,6 @@ describe("StakeEmy", function () {
 
         it ("Should not be possible to claim is lpToken is not set", async function () {
             await expect(StakeEmyInstance.claim()).to.be.revertedWith("lpToken not set");
-        });
-
-        it("Should not be possible to claim if coolDown is not set", async function () {
-            await StakeEmyInstance.setLPToken(Erc20myInstance.address);
-            await StakeEmyInstance.setCooldown(0);
-            await expect(StakeEmyInstance.claim()).to.be.revertedWith("Cooldown is not set");
         });
     });
 
@@ -282,13 +276,6 @@ describe("StakeEmy", function () {
         it("Should set pool", async function () {
             await StakeEmyInstance.setPool(100);
             expect(await StakeEmyInstance.pool()).to.equal(100);
-        });
-    });
-
-    describe("Cooldown", function () {
-        it("Should set cool down", async function () {
-            await StakeEmyInstance.setCooldown(coolDown + 1);
-            expect(await StakeEmyInstance.coolDown()).to.equal(coolDown + 1);
         });
     });
 

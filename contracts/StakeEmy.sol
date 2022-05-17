@@ -17,28 +17,21 @@ contract StakeEmy {
     uint256 public freezeTime;
 
     uint256 public allStaked;
-    uint256 private lastPeriod;
-    address[] public accountsInPool;
     mapping(address => uint256) private balances;
-    mapping(address => uint256) private claimed;
-    mapping(uint256 => Shares) private sharesPerPeriod;
     mapping(address => uint256) private startStaking;
+
+    mapping(uint256 => mapping(address => uint256)) private sharesPerPeriods;
+    LPValuePerPeriod[] private lpValuePerPeriod;
+    mapping(address => uint256) private lastPeriodClaim;
     
     event Stake(address indexed _from, uint256 _value);
     event Unstake(address indexed _to, uint256 _value);
     event Claim(address indexed _to, uint256 _value);
 
-    struct Share {
-        address account;
-        uint256 amount;
-        bool claimed;
-    }
-
-    struct Shares {
-        uint256 claimed;
-        uint256 allShares;
-        uint256 pool;
-        mapping(address => Share) shares;
+    struct LPValuePerPeriod {
+        uint256 lpValue;
+        uint256 periodStart;
+        uint256 periodEnd;
     }
 
     modifier onlyOwner() {
@@ -76,8 +69,8 @@ contract StakeEmy {
             IErc20(lpToken).allowance(msg.sender, address(this)) >= _amount,
             "Not enough allowance"
         );
-        _updateShares();
-        _updateAccountInPool(msg.sender);
+        _updateLastPeriod();
+        _claim();
         IErc20(lpToken).transferFrom(msg.sender, address(this), _amount);
         balances[msg.sender] += _amount;
         allStaked += _amount;
@@ -89,8 +82,7 @@ contract StakeEmy {
         require(lpToken != address(0), "lpToken not set");
         require(balances[msg.sender] >= _amount, "Not enough balance");
         require(startStaking[msg.sender] <= block.timestamp - freezeTime, "Tokens still frozen");
-        _updateShares();
-        _excludeAccountFromPool(msg.sender);
+        _updateLastPeriod();
         _claim();
         balances[msg.sender] -= _amount;
         allStaked -= _amount;
@@ -102,13 +94,8 @@ contract StakeEmy {
         require(lpToken != address(0), "lpToken not set");
         require(coolDown > 0, "Cooldown is not set");
         require(balances[msg.sender] > 0, "No balance to claim");
-        _updateShares();
+        _updateLastPeriod();
         _claim();
-    }
-
-    function setCooldown(uint256 _coolDown) public onlyOwnerOrAdmin {
-        _updateShares();
-        coolDown = _coolDown;
     }
 
     function setLPToken(address _lpToken) public onlyOwnerOrAdmin {
@@ -118,7 +105,7 @@ contract StakeEmy {
     }
 
     function setPool(uint256 _pool) public onlyOwnerOrAdmin {
-        _updateShares();
+        _updateLastPeriod();
         pool = _pool;
     }
 
@@ -132,65 +119,34 @@ contract StakeEmy {
 
     receive() external payable {}
 
-    function _updateShares() private {
-        uint256 periods = (block.timestamp - startPool) / coolDown;
-        if (lastPeriod < periods) {
-            for (uint256 j = 0; j < accountsInPool.length; j++) {
-                uint256 shareValue = (balances[accountsInPool[j]] * pool) / allStaked;
-                for (uint256 i = lastPeriod; i < periods; i++) {
-                    sharesPerPeriod[i].allShares++;
-                    sharesPerPeriod[i].pool = pool;
-                    sharesPerPeriod[i].shares[accountsInPool[j]] = Share(
-                        accountsInPool[j],
-                        shareValue,
-                        false
-                    );
-                }
-            }
-        }
-        lastPeriod = periods;
-    }
-
-    function _claim() private {
+    function _claim() private{
+        uint256 lpc = lastPeriodClaim[msg.sender];
         uint256 totalClaimed = 0;
-        for (uint256 i = claimed[msg.sender]; i < lastPeriod; i++) {
-            uint256 toClaimValue = 0;
-            Shares storage shares = sharesPerPeriod[i];
-            if (!shares.shares[msg.sender].claimed && shares.shares[msg.sender].amount > 0) {
-                if (shares.claimed + 1 == shares.allShares) {
-                    toClaimValue = shares.pool;
-                } else {
-                    toClaimValue = shares.shares[msg.sender].amount;
-                }
-                shares.pool -= toClaimValue;
-                shares.shares[msg.sender].claimed = true;
-                shares.claimed++;
-                totalClaimed += toClaimValue;
-            }
+        for (uint256 i = lpc; i < lpValuePerPeriod.length; i++){
+            totalClaimed += (lpValuePerPeriod[i].periodEnd - lpValuePerPeriod[i].periodStart) * lpValuePerPeriod[i].lpValue * balances[msg.sender];
         }
-        claimed[msg.sender] = lastPeriod;
+        lastPeriodClaim[msg.sender] = lpValuePerPeriod.length;
         if (totalClaimed > 0) {
             IMintable(rewardToken).mint(msg.sender, totalClaimed);
             emit Unstake(msg.sender, totalClaimed);
         }
     }
 
-    function _excludeAccountFromPool(address exclude) private {
-        for (uint256 i = 0; i < accountsInPool.length; i++) {
-            if (accountsInPool[i] == exclude) {
-                accountsInPool[i] = accountsInPool[accountsInPool.length - 1];
-                accountsInPool.pop();
-                break;
-            }
+    function _currentPeriod() private view returns (uint256){
+        return (block.timestamp - startPool) / coolDown;
+    }
+
+    function _updateLastPeriod() private{
+        if (lpValuePerPeriod.length > 0){
+            LPValuePerPeriod memory previousPeriod = lpValuePerPeriod[lpValuePerPeriod.length - 1];
+
+            lpValuePerPeriod.push(
+                LPValuePerPeriod(pool/allStaked, previousPeriod.periodEnd, _currentPeriod())
+            );
+        }else{
+            lpValuePerPeriod.push(
+                LPValuePerPeriod(0, 0, _currentPeriod())
+            );
         }
-    }
-
-    function _addAccountToPool(address account) private {
-        accountsInPool.push(account);
-    }
-
-    function _updateAccountInPool(address account) private {
-        _excludeAccountFromPool(account);
-        _addAccountToPool(account);
     }
 }
