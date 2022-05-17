@@ -117,12 +117,12 @@ contract StakeEmy {
 
     function _claim() private {
         uint256 totalClaimed = 0;
-        if (allStaked != 0) {
-            lastValue += pool * (_currentPeriod() - lastUpdate) / allStaked;
-            lastUpdate = _currentPeriod();
-            totalClaimed = (lastValue - lastValuePerAddress[msg.sender]) * balanceOf(msg.sender);
-            lastValuePerAddress[msg.sender] = lastValue;
-        }
+        lastValue += (pool * (_currentPeriod() - lastUpdate)) / allStaked;
+        lastUpdate = _currentPeriod();
+        totalClaimed =
+            (lastValue - lastValuePerAddress[msg.sender]) *
+            balanceOf(msg.sender);
+        lastValuePerAddress[msg.sender] = lastValue;
         if (totalClaimed > 0) {
             IMintable(rewardToken).mint(msg.sender, totalClaimed);
             emit Claim(msg.sender, totalClaimed);
