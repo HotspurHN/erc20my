@@ -58,7 +58,7 @@ async function main() {
   const pairErc20 = await tools._setLPToken(Erc20myInstance, StakeEmyInstance, Router, (await ethers.getSigners())[0].address, '10000000000000000000000', '10000000000000000');
   console.log("pair:", pairErc20.address);
 
-  console.log("finish:", pairErc20.address);
+  console.log("finish");
   console.log({
     "Erc20my": Erc20myInstance.address,
     "Erc20Url": `https://rinkeby.etherscan.io/address/${Erc20myInstance.address}`,
