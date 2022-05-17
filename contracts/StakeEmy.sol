@@ -78,10 +78,10 @@ contract StakeEmy {
         );
         _updateShares();
         _updateAccountInPool(msg.sender);
+        IErc20(lpToken).transferFrom(msg.sender, address(this), _amount);
         balances[msg.sender] += _amount;
         allStaked += _amount;
         startStaking[msg.sender] = block.timestamp;
-        IErc20(lpToken).transferFrom(msg.sender, address(this), _amount);
         emit Stake(msg.sender, _amount);
     }
 

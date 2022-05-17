@@ -82,10 +82,8 @@ describe("StakeEmy", function () {
     describe("stake", function () {
         it("Should stake tokens", async function () {
             await _setLPToken();
-            let approveTx = await PairErc20.approve(StakeEmyInstance.address, 100);
-            await approveTx.wait();
-            let tx = await StakeEmyInstance.stake(100);
-            await tx.wait();
+            await PairErc20.approve(StakeEmyInstance.address, 100);
+            await StakeEmyInstance.stake(100);
             expect(await StakeEmyInstance.balanceOf(owner.address)).to.equal(100);
             expect(await StakeEmyInstance.allStaked()).to.equal(100);
         });
@@ -93,23 +91,18 @@ describe("StakeEmy", function () {
         it("Should stake tokens with a different amount", async function () {
             await _setLPToken();
 
-            let approveTx = await PairErc20.approve(StakeEmyInstance.address, 100);
-            await approveTx.wait();
-            let tx = await StakeEmyInstance.stake(100);
-            await tx.wait();
+            await PairErc20.approve(StakeEmyInstance.address, 100);
+            await StakeEmyInstance.stake(100);
 
-            approveTx = await PairErc20.approve(StakeEmyInstance.address, 100);
-            await approveTx.wait();
-            tx = await StakeEmyInstance.stake(100);
-            await tx.wait();
+            await PairErc20.approve(StakeEmyInstance.address, 100);
+            await StakeEmyInstance.stake(100);
 
             expect(await StakeEmyInstance.balanceOf(owner.address)).to.equal(200);
             expect(await StakeEmyInstance.allStaked()).to.equal(200);
         });
 
         it("Should fail if not enough tokens are approved", async function () {
-            let setLPTokenTx = await StakeEmyInstance.setLPToken(PairErc20.address);
-            await setLPTokenTx.wait();
+            await StakeEmyInstance.setLPToken(PairErc20.address);
 
             await expect(StakeEmyInstance.stake(100)).to.be.revertedWith("Not enough allowance");
         });
@@ -120,8 +113,7 @@ describe("StakeEmy", function () {
 
         it("Should fail if not enough tokens are available", async function () {
             await _setLPToken();
-            let approveTx = await PairErc20.connect(addr1).approve(StakeEmyInstance.address, 100);
-            await approveTx.wait();
+            await PairErc20.connect(addr1).approve(StakeEmyInstance.address, 100);
             await expect(StakeEmyInstance.connect(addr1).stake(100)).to.be.revertedWith("Not enough balance");
         });
     });
@@ -150,8 +142,7 @@ describe("StakeEmy", function () {
 
             await tools._mineBlockByTime(timestampBeforeStakeOwner + 3 * coolDown);
 
-            let tx = await StakeEmyInstance.unstake(stake);
-            await tx.wait();
+            await StakeEmyInstance.unstake(stake);
 
             expect(await Erc20myInstance.balanceOf(owner.address)).to.equal(initialBalance.add(pool * 3));
         });
@@ -191,8 +182,7 @@ describe("StakeEmy", function () {
             await ethers.provider.send("evm_increaseTime", [coolDown]);
             await ethers.provider.send("evm_mine");
 
-            let tx2 = await StakeEmyInstance.claim();
-            await tx2.wait();
+            await StakeEmyInstance.claim();
             expect(await Erc20myInstance.balanceOf(owner.address)).to.equal(initialBalance.add(pool));
         });
 
@@ -204,8 +194,7 @@ describe("StakeEmy", function () {
             await PairErc20.approve(StakeEmyInstance.address, stake);
             await StakeEmyInstance.stake(stake);
 
-            let tx2 = await StakeEmyInstance.claim();
-            await tx2.wait();
+            await StakeEmyInstance.claim();
             expect(await Erc20myInstance.balanceOf(owner.address)).to.equal(initialBalance);
         });
 
@@ -235,19 +224,16 @@ describe("StakeEmy", function () {
             await StakeEmyInstance.connect(addr1).stake(stake1);
 
             await tools._mineBlockByTime(timestampBeforeStakeOwner + 3 * coolDown);
-            const tx1 = await StakeEmyInstance.claim();
-            await tx1.wait();
+            await StakeEmyInstance.claim();
 
             await tools._mineBlockByTime(timestampBeforeStake1 + 4 * coolDown);
-            const tx2 = await StakeEmyInstance.connect(addr1).claim();
-            await tx2.wait();
+            await StakeEmyInstance.connect(addr1).claim();
 
             const timestampBeforeStake2 = (await ethers.provider.getBlock(await ethers.provider.getBlockNumber())).timestamp;
             await StakeEmyInstance.connect(addr2).stake(stake2);
 
             await tools._mineBlockByTime(timestampBeforeStake2 + 5 * coolDown);
-            const tx3 = await StakeEmyInstance.connect(addr2).claim();
-            await tx3.wait();
+            await StakeEmyInstance.connect(addr2).claim();
 
             const balance1 = await Erc20myInstance.balanceOf(addr1.address);
             const balance2 = await Erc20myInstance.balanceOf(addr2.address);
