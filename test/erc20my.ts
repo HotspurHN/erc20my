@@ -65,7 +65,7 @@ describe("Erc20my", function () {
     });
 
     it("Should fail when trying to transfer more than balance", async function () {
-      await expect(Erc20myInstance.transfer(addr1.address, tokenTotalSupply + 1)).to.be.revertedWith("VM Exception while processing transaction: reverted with reason string 'Not enough balance'");
+      await expect(Erc20myInstance.transfer(addr1.address, tokenTotalSupply + 1)).to.be.revertedWith("Not enough balance");
     });
   });
 
@@ -81,13 +81,13 @@ describe("Erc20my", function () {
 
     it("Should fail when trying to transfer more than allowance", async function () {
       await Erc20myInstance.approve(addr1.address, 100);
-      await expect(Erc20myInstance.connect(addr1).transferFrom(owner.address, addr1.address, 101)).to.be.revertedWith("VM Exception while processing transaction: reverted with reason string 'Not enough allowance'");
+      await expect(Erc20myInstance.connect(addr1).transferFrom(owner.address, addr1.address, 101)).to.be.revertedWith("Not enough allowance");
     }
     );
 
     it("Should fail when trying to transfer more than balance", async function () {
       await Erc20myInstance.approve(addr1.address, tokenTotalSupply + 1);
-      await expect(Erc20myInstance.connect(addr1).transferFrom(owner.address, addr1.address, tokenTotalSupply + 1)).to.be.revertedWith("VM Exception while processing transaction: reverted with reason string 'Not enough balance'");
+      await expect(Erc20myInstance.connect(addr1).transferFrom(owner.address, addr1.address, tokenTotalSupply + 1)).to.be.revertedWith("Not enough balance");
     }
     );
   });
@@ -103,7 +103,7 @@ describe("Erc20my", function () {
     });
 
     it("Should be possible only for minter", async function () {
-      await expect(Erc20myInstance.connect(addr1).mint(addr1.address, 1)).to.be.revertedWith("VM Exception while processing transaction: reverted with reason string 'Only minter allowed'");
+      await expect(Erc20myInstance.connect(addr1).mint(addr1.address, 1)).to.be.revertedWith("Only minter allowed");
     });
   });
 
@@ -120,11 +120,11 @@ describe("Erc20my", function () {
     it("Should fail when trying to burn more than balance", async function () {
       let minterRoleTx = await Erc20myInstance.setMinter(owner.address);
       await minterRoleTx.wait();
-      await expect(Erc20myInstance.burn(owner.address, tokenTotalSupply + 1)).to.be.revertedWith("VM Exception while processing transaction: reverted with reason string 'Not enough balance'");
+      await expect(Erc20myInstance.burn(owner.address, tokenTotalSupply + 1)).to.be.revertedWith("Not enough balance");
     });
 
     it("Should be possible only for minter", async function () {
-      await expect(Erc20myInstance.connect(addr1).burn(owner.address, 1)).to.be.revertedWith("VM Exception while processing transaction: reverted with reason string 'Only minter allowed'");
+      await expect(Erc20myInstance.connect(addr1).burn(owner.address, 1)).to.be.revertedWith("Only minter allowed");
     });
   });
 
@@ -146,7 +146,7 @@ describe("Erc20my", function () {
     
     it("Should fail when trying to decrease more than allowance", async function () {
       await Erc20myInstance.approve(addr1.address, 100);
-      await expect(Erc20myInstance.decreaseAllowance(addr1.address, 101)).to.be.revertedWith("VM Exception while processing transaction: reverted with reason string 'Not enough allowance'");
+      await expect(Erc20myInstance.decreaseAllowance(addr1.address, 101)).to.be.revertedWith("Not enough allowance");
     });
   });
 
@@ -158,7 +158,7 @@ describe("Erc20my", function () {
     });
 
     it("Should fail when trying to set minter to non-owner", async function () {
-      await expect(Erc20myInstance.connect(addr1).setMinter(addr1.address)).to.be.revertedWith("VM Exception while processing transaction: reverted with reason string 'Only owner allowed'");
+      await expect(Erc20myInstance.connect(addr1).setMinter(addr1.address)).to.be.revertedWith("Only owner allowed");
     });
   });
 });

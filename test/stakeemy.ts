@@ -111,18 +111,18 @@ describe("StakeEmy", function () {
             let setLPTokenTx = await StakeEmyInstance.setLPToken(PairErc20.address);
             await setLPTokenTx.wait();
 
-            await expect(StakeEmyInstance.stake(100)).to.be.revertedWith("VM Exception while processing transaction: reverted with reason string 'Not enough allowance'");
+            await expect(StakeEmyInstance.stake(100)).to.be.revertedWith("Not enough allowance");
         });
 
         it("Should fail if lpToken not set", async function () {
-            await expect(StakeEmyInstance.stake(100)).to.be.revertedWith("VM Exception while processing transaction: reverted with reason string 'lpToken not set'");
+            await expect(StakeEmyInstance.stake(100)).to.be.revertedWith("lpToken not set");
         });
 
         it("Should fail if not enough tokens are available", async function () {
             await _setLPToken();
             let approveTx = await PairErc20.connect(addr1).approve(StakeEmyInstance.address, 100);
             await approveTx.wait();
-            await expect(StakeEmyInstance.connect(addr1).stake(100)).to.be.revertedWith("VM Exception while processing transaction: reverted with reason string 'Not enough balance'");
+            await expect(StakeEmyInstance.connect(addr1).stake(100)).to.be.revertedWith("Not enough balance");
         });
     });
 
@@ -163,7 +163,7 @@ describe("StakeEmy", function () {
             await PairErc20.approve(StakeEmyInstance.address, stake);
             await StakeEmyInstance.stake(stake);
 
-            await expect(StakeEmyInstance.unstake(stake)).to.be.revertedWith("VM Exception while processing transaction: reverted with reason string 'Tokens still frozen'");
+            await expect(StakeEmyInstance.unstake(stake)).to.be.revertedWith("Tokens still frozen");
         });
 
         it ("Should fail if not enough tokens are staked", async function () {	
@@ -171,11 +171,11 @@ describe("StakeEmy", function () {
 
             const stake = 100;
             await PairErc20.approve(StakeEmyInstance.address, stake);
-            await expect(StakeEmyInstance.unstake(stake)).to.be.revertedWith("VM Exception while processing transaction: reverted with reason string 'Not enough balance'");
+            await expect(StakeEmyInstance.unstake(stake)).to.be.revertedWith("Not enough balance");
         });
 
         it ("Should fail if not set lpToken", async function () {
-            await expect(StakeEmyInstance.unstake(100)).to.be.revertedWith("VM Exception while processing transaction: reverted with reason string 'lpToken not set'");
+            await expect(StakeEmyInstance.unstake(100)).to.be.revertedWith("lpToken not set");
         });
     });
 
@@ -211,7 +211,7 @@ describe("StakeEmy", function () {
 
         it("Should not claim tokens if not enough tokens are staked", async function () {
             await _setLPToken();
-            await expect(StakeEmyInstance.claim()).to.be.revertedWith("VM Exception while processing transaction: reverted with reason string 'No balance to claim'");
+            await expect(StakeEmyInstance.claim()).to.be.revertedWith("No balance to claim");
         });
 
         it("Should claim tokens devided by the number of stakers", async function () {
@@ -266,13 +266,13 @@ describe("StakeEmy", function () {
         });
 
         it ("Should not be possible to claim is lpToken is not set", async function () {
-            await expect(StakeEmyInstance.claim()).to.be.revertedWith("VM Exception while processing transaction: revert");
+            await expect(StakeEmyInstance.claim()).to.be.revertedWith("lpToken not set");
         });
 
         it("Should not be possible to claim if coolDown is not set", async function () {
             await StakeEmyInstance.setLPToken(Erc20myInstance.address);
             await StakeEmyInstance.setCooldown(0);
-            await expect(StakeEmyInstance.claim()).to.be.revertedWith("VM Exception while processing transaction: revert");
+            await expect(StakeEmyInstance.claim()).to.be.revertedWith("Cooldown is not set");
         });
     });
 
@@ -283,12 +283,12 @@ describe("StakeEmy", function () {
         });
 
         it ("Should not be possible to set LP token if not admin or owner", async function () {
-            await expect(StakeEmyInstance.connect(addr1).setLPToken(Erc20myInstance.address)).to.be.revertedWith("VM Exception while processing transaction: revert");
+            await expect(StakeEmyInstance.connect(addr1).setLPToken(Erc20myInstance.address)).to.be.revertedWith("Only owner or admin allowed");
         });
 
         it ("Should not be possible to set lp token if it is already set", async function () {
             await StakeEmyInstance.setLPToken(Erc20myInstance.address);
-            await expect(StakeEmyInstance.setLPToken(Erc20myInstance.address)).to.be.revertedWith("VM Exception while processing transaction: revert");
+            await expect(StakeEmyInstance.setLPToken(Erc20myInstance.address)).to.be.revertedWith("lpToken already set");
         });
     });
 
