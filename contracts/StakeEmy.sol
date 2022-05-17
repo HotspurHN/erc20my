@@ -16,14 +16,17 @@ contract StakeEmy {
     uint256 public startPool;
     uint256 public freezeTime;
 
+    uint256 private lastValue;
+    uint256 private lastUpdate;
+    mapping(address => uint256) private lastValuePerAddress;
+
     uint256 public allStaked;
+    LPValuePerPeriod[] private lpValuePerPeriod;
     mapping(address => uint256) private balances;
     mapping(address => uint256) private startStaking;
-
     mapping(uint256 => mapping(address => uint256)) private sharesPerPeriods;
-    LPValuePerPeriod[] private lpValuePerPeriod;
     mapping(address => uint256) private lastPeriodClaim;
-    
+
     event Stake(address indexed _from, uint256 _value);
     event Unstake(address indexed _to, uint256 _value);
     event Claim(address indexed _to, uint256 _value);
@@ -69,8 +72,11 @@ contract StakeEmy {
             IErc20(lpToken).allowance(msg.sender, address(this)) >= _amount,
             "Not enough allowance"
         );
-        _updateLastPeriod();
-        _claim();
+        if (balances[msg.sender] > 0) {
+            _claim();
+        } else {
+            lastValuePerAddress[msg.sender] = lastValue;
+        }
         IErc20(lpToken).transferFrom(msg.sender, address(this), _amount);
         balances[msg.sender] += _amount;
         allStaked += _amount;
@@ -81,8 +87,10 @@ contract StakeEmy {
     function unstake(uint256 _amount) public {
         require(lpToken != address(0), "lpToken not set");
         require(balances[msg.sender] >= _amount, "Not enough balance");
-        require(startStaking[msg.sender] <= block.timestamp - freezeTime, "Tokens still frozen");
-        _updateLastPeriod();
+        require(
+            startStaking[msg.sender] <= block.timestamp - freezeTime,
+            "Tokens still frozen"
+        );
         _claim();
         balances[msg.sender] -= _amount;
         allStaked -= _amount;
@@ -94,7 +102,6 @@ contract StakeEmy {
         require(lpToken != address(0), "lpToken not set");
         require(coolDown > 0, "Cooldown is not set");
         require(balances[msg.sender] > 0, "No balance to claim");
-        _updateLastPeriod();
         _claim();
     }
 
@@ -105,7 +112,6 @@ contract StakeEmy {
     }
 
     function setPool(uint256 _pool) public onlyOwnerOrAdmin {
-        _updateLastPeriod();
         pool = _pool;
     }
 
@@ -119,34 +125,21 @@ contract StakeEmy {
 
     receive() external payable {}
 
-    function _claim() private{
-        uint256 lpc = lastPeriodClaim[msg.sender];
+    function _claim() private {
         uint256 totalClaimed = 0;
-        for (uint256 i = lpc; i < lpValuePerPeriod.length; i++){
-            totalClaimed += (lpValuePerPeriod[i].periodEnd - lpValuePerPeriod[i].periodStart) * lpValuePerPeriod[i].lpValue * balances[msg.sender];
+        if (allStaked != 0) {
+            lastValue += (pool * (_currentPeriod() - lastUpdate)) / allStaked;
+            lastUpdate = _currentPeriod();
+            totalClaimed = (lastValue - lastValuePerAddress[msg.sender]) * balanceOf(msg.sender);
+            lastValuePerAddress[msg.sender] = lastValue;
         }
-        lastPeriodClaim[msg.sender] = lpValuePerPeriod.length;
         if (totalClaimed > 0) {
             IMintable(rewardToken).mint(msg.sender, totalClaimed);
-            emit Unstake(msg.sender, totalClaimed);
+            emit Claim(msg.sender, totalClaimed);
         }
     }
 
-    function _currentPeriod() private view returns (uint256){
+    function _currentPeriod() private view returns (uint256) {
         return (block.timestamp - startPool) / coolDown;
-    }
-
-    function _updateLastPeriod() private{
-        if (lpValuePerPeriod.length > 0){
-            LPValuePerPeriod memory previousPeriod = lpValuePerPeriod[lpValuePerPeriod.length - 1];
-
-            lpValuePerPeriod.push(
-                LPValuePerPeriod(pool/allStaked, previousPeriod.periodEnd, _currentPeriod())
-            );
-        }else{
-            lpValuePerPeriod.push(
-                LPValuePerPeriod(0, 0, _currentPeriod())
-            );
-        }
     }
 }

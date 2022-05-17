@@ -203,7 +203,7 @@ describe("StakeEmy", function () {
             await expect(StakeEmyInstance.claim()).to.be.revertedWith("No balance to claim");
         });
 
-        it("Should claim tokens devided by the number of stakers", async function () {
+        it("Should claim tokens divided by the number of stakers", async function () {
             await _setLPToken();
 
             const initialBalance = await Erc20myInstance.balanceOf(owner.address) || 0;
@@ -234,12 +234,13 @@ describe("StakeEmy", function () {
 
             await tools._mineBlockByTime(timestampBeforeStake2 + 5 * coolDown);
             await StakeEmyInstance.connect(addr2).claim();
+            await StakeEmyInstance.claim();
 
             const balance1 = await Erc20myInstance.balanceOf(addr1.address);
             const balance2 = await Erc20myInstance.balanceOf(addr2.address);
             const balanceOwner = await Erc20myInstance.balanceOf(owner.address);
 
-            const bo = initialBalance.add(Math.round(pool * stake * 3 / (stake + stake1)));
+            const bo = initialBalance.add(Math.round(pool * stake * 4 / (stake + stake1)) + Math.round(pool * stake * 5 / (stake + stake1 + stake2)));
             const b1 = Math.round(pool * stake1 * 4 / (stake + stake1));
             const b2 = Math.round(pool * stake2 * 5 / (stake + stake1 + stake2));
 
