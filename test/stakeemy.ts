@@ -264,4 +264,20 @@ describe("StakeEmy", function () {
         });
     });
 
+    describe("Claimable", function () {
+        it("Should return true if the LP token is set", async function () {
+            await _setLPToken();
+            const stake = 100;
+
+            await PairErc20.approve(StakeEmyInstance.address, stake);
+            await StakeEmyInstance.stake(stake);
+
+            await ethers.provider.send("evm_increaseTime", [coolDown]);
+            await ethers.provider.send("evm_mine");
+
+            expect(await StakeEmyInstance.claimable()).to.equal(pool);
+        });
+
+    });
+
 });

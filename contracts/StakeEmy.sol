@@ -89,6 +89,11 @@ contract StakeEmy {
         emit Unstake(msg.sender, _amount);
     }
 
+    function claimable() public view returns(uint256){
+        uint256 last = lastValue + pool * (_currentPeriod() - lastUpdate) / allStaked;
+        return (last - lastValuePerAddress[msg.sender]) * balanceOf(msg.sender);
+    }
+
     function claim() public {
         require(lpToken != address(0), "lpToken not set");
         require(balances[msg.sender] > 0, "No balance to claim");
@@ -116,12 +121,9 @@ contract StakeEmy {
     receive() external payable {}
 
     function _claim() private {
-        uint256 totalClaimed = 0;
         lastValue += (pool * (_currentPeriod() - lastUpdate)) / allStaked;
         lastUpdate = _currentPeriod();
-        totalClaimed =
-            (lastValue - lastValuePerAddress[msg.sender]) *
-            balanceOf(msg.sender);
+        uint256 totalClaimed = claimable();
         lastValuePerAddress[msg.sender] = lastValue;
         if (totalClaimed > 0) {
             IMintable(rewardToken).mint(msg.sender, totalClaimed);
