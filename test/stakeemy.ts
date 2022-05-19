@@ -45,7 +45,6 @@ describe("StakeEmy", function () {
         await Erc20myInstance.deployed();
         StakeEmyInstance = await StakeEmy.deploy(Erc20myInstance.address, pool, coolDown, freeze);
         await StakeEmyInstance.deployed();
-        await owner.sendTransaction({ to: StakeEmyInstance.address, value: ethers.utils.parseEther("0.1") });
         await Erc20myInstance.setMinter(StakeEmyInstance.address);
     });
 
@@ -80,7 +79,7 @@ describe("StakeEmy", function () {
         it("Should fail if not enough tokens are approved", async function () {
             await StakeEmyInstance.setLPToken(PairErc20.address);
 
-            await expect(StakeEmyInstance.stake(100)).to.be.revertedWith("Not enough allowance");
+            await expect(StakeEmyInstance.stake(100)).to.be.reverted;
         });
 
         it("Should fail if lpToken not set", async function () {
@@ -90,7 +89,7 @@ describe("StakeEmy", function () {
         it("Should fail if not enough tokens are available", async function () {
             await _setLPToken();
             await PairErc20.connect(addr1).approve(StakeEmyInstance.address, 100);
-            await expect(StakeEmyInstance.connect(addr1).stake(100)).to.be.revertedWith("Not enough balance");
+            await expect(StakeEmyInstance.connect(addr1).stake(100)).to.be.reverted;
         });
     });
 

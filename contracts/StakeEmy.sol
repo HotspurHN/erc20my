@@ -55,14 +55,6 @@ contract StakeEmy {
 
     function stake(uint256 _amount) public {
         require(lpToken != address(0), "lpToken not set");
-        require(
-            IErc20(lpToken).balanceOf(msg.sender) >= _amount,
-            "Not enough balance"
-        );
-        require(
-            IErc20(lpToken).allowance(msg.sender, address(this)) >= _amount,
-            "Not enough allowance"
-        );
         if (balances[msg.sender] > 0) {
             _claim();
         } else {
@@ -117,8 +109,6 @@ contract StakeEmy {
     function balanceOf(address _owner) public view returns (uint256) {
         return balances[_owner];
     }
-
-    receive() external payable {}
 
     function _claim() private {
         lastValue += (pool * (_currentPeriod() - lastUpdate)) / allStaked;
