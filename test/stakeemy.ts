@@ -79,7 +79,7 @@ describe("StakeEmy", function () {
         it("Should fail if not enough tokens are approved", async function () {
             await StakeEmyInstance.setLPToken(PairErc20.address);
 
-            await expect(StakeEmyInstance.stake(100)).to.be.reverted;
+            await expect(StakeEmyInstance.stake(100)).to.be.revertedWith("ds-math-sub-underflow");
         });
 
         it("Should fail if lpToken not set", async function () {
@@ -89,7 +89,7 @@ describe("StakeEmy", function () {
         it("Should fail if not enough tokens are available", async function () {
             await _setLPToken();
             await PairErc20.connect(addr1).approve(StakeEmyInstance.address, 100);
-            await expect(StakeEmyInstance.connect(addr1).stake(100)).to.be.reverted;
+            await expect(StakeEmyInstance.connect(addr1).stake(100)).to.be.revertedWith("ds-math-sub-underflow");
         });
     });
 
