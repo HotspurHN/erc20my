@@ -27,17 +27,17 @@ contract Erc721my is ERC721, ERC721URIStorage, IMintableErc721, Ownable {
         return newItemId;
     }
 
-    function _burn(uint256 tokenId) onlyOwner internal override(ERC721, ERC721URIStorage) {
-        super._burn(tokenId);
+    function _burn(uint256 _tokenId) onlyOwner internal override(ERC721, ERC721URIStorage) {
+        super._burn(_tokenId);
     }
 
-    function tokenURI(uint256 tokenId)
+    function tokenURI(uint256 _tokenId)
         public
         view
         override(ERC721, ERC721URIStorage)
         returns (string memory)
     {
-        return super.tokenURI(tokenId);
+        return super.tokenURI(_tokenId);
     }
 
     function _baseURI() internal pure override returns (string memory) {

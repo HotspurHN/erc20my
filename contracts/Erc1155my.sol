@@ -15,6 +15,7 @@ contract Erc1155my is ERC1155URIStorage, IMintableErc1155, Ownable {
     function mintTo(address _recipient, string memory _uri, uint256 _count)
         public
         override
+        onlyMinter
         returns (uint256)
     {
         uint256 newItemId = tokenId;
