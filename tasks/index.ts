@@ -3,7 +3,6 @@ import { HardhatUserConfig, task } from "hardhat/config";
 import "@nomiclabs/hardhat-ethers";
 import { Contract } from "@ethersproject/contracts";
 import { HardhatRuntimeEnvironment } from "hardhat/types";
-import stakingTasks from "./stake";
 import erc20tasks from "./erc20";
 
 export function tasks() {
@@ -21,6 +20,5 @@ export function tasks() {
     return Erc20myInstance;
   }
 
-  stakingTasks.forEach(x => x);
   erc20tasks.forEach(x => x);
 }

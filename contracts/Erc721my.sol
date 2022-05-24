@@ -3,12 +3,12 @@ pragma solidity ^0.8.0;
 
 import "hardhat/console.sol";
 import "./interfaces/IMintable.sol";
-import "./interfaces/IMintableNft.sol";
+import "./interfaces/IMintableErc721.sol";
 import "@openzeppelin/contracts/token/ERC721/extensions/ERC721URIStorage.sol";
 import "@openzeppelin/contracts/token/ERC721/ERC721.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 
-contract Erc721my is ERC721, ERC721URIStorage, IMintableNft, Ownable {
+contract Erc721my is ERC721, ERC721URIStorage, IMintableErc721, Ownable {
 
     uint256 private tokenId;
     address private minter;
