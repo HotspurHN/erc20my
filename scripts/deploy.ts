@@ -4,7 +4,7 @@ import { Erc721my } from "../typechain-types/contracts/Erc721my";
 import { Erc1155my } from "../typechain-types/contracts/Erc1155my";
 import { NFTMarketplace } from "../typechain-types/contracts/NFTMarketplace";
 
-const images = ['QmZWbZ7ogH3ER5EvBFPYfWkpZnY8zZttfUnSWZGgw8mKje', 'QmXYqZXwFxHJvNdDaJfrYFrGaCJgmJW8zK4ifYBM5r3vYJ'];
+const images = ['QmZWbZ7ogH3ER5EvBFPYfWkpZnY8zZttfUnSWZGgw8mKje', 'QmNNG72zU4qGxP41D1xVuRgkuKBQdgCpY82FSdZYnkDofG'];
 //, {gasPrice: '68813487855'}
 
 async function main() {

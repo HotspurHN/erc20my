@@ -192,7 +192,6 @@ contract NFTMarketplace is ERC1155Holder, ERC721Holder {
             auctionsByTokenId[erc721][_tokenId].isOpen == false,
             "Item is already listed"
         );
-        IERC721(erc721).safeTransferFrom(msg.sender, address(this), _tokenId);
         Auction memory auction = Auction(
             auctions.length + 1,
             msg.sender,
@@ -207,6 +206,7 @@ contract NFTMarketplace is ERC1155Holder, ERC721Holder {
         );
         auctions.push(auction);
         auctionsByTokenId[erc721][_tokenId] = auction;
+        IERC721(erc721).safeTransferFrom(msg.sender, address(this), _tokenId);
         return auction.id;
     }
 
