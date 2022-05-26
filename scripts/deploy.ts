@@ -1,5 +1,5 @@
 import { ethers, run } from "hardhat";
-import { Erc20my } from "../typechain-types/Erc20my";
+import { Erc20my } from "../typechain-types/contracts/Erc20my";
 import { Erc721my } from "../typechain-types/contracts/Erc721my";
 import { Erc1155my } from "../typechain-types/contracts/Erc1155my";
 import { NFTMarketplace } from "../typechain-types/contracts/NFTMarketplace";
@@ -38,10 +38,10 @@ async function main() {
   await Erc1155myInstance.setMinter(NFTMarketplaceInstance.address);
   
   console.log("mint 721");
-  await NFTMarketplaceInstance.createItemErc721(`ipfs://${images[0]}`);
+  await NFTMarketplaceInstance["createItem(string)"](`ipfs://${images[0]}`);
 
   console.log("mint 1155");
-  await NFTMarketplaceInstance.createItemErc1155(`ipfs://${images[1]}`, 100);
+  await NFTMarketplaceInstance["createItem(string,uint256)"](`ipfs://${images[1]}`, 100);
 
   console.log("verifing");
   try {

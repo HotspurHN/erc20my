@@ -1,5 +1,5 @@
 import { expect } from "chai";
-import { Erc20my } from "../typechain-types/Erc20my";
+import { Erc20my } from "../typechain-types/contracts/Erc20my";
 const { ethers } = require("hardhat");
 
 describe("Erc20my", function () {

@@ -3,7 +3,7 @@ const { ethers } = require("hardhat");
 import { NFTMarketplace } from "../typechain-types/contracts/NFTMarketplace";
 import { Erc721my } from "../typechain-types/contracts/Erc721my";
 import { Erc1155my } from "../typechain-types/contracts/Erc1155my";
-import { Erc20my } from "../typechain-types/Erc20my";
+import { Erc20my } from "../typechain-types/contracts/Erc20my";
 import testTools from "./tools";
 
 describe("NFTMarketplace", function () {
@@ -19,8 +19,6 @@ describe("NFTMarketplace", function () {
 
     let owner: any;
     let addr1: any;
-
-    let contractAddress: string;
 
     let NFTMarketplaceFactory: any;
     let NFTMarketplaceInstance: NFTMarketplace;
@@ -62,39 +60,39 @@ describe("NFTMarketplace", function () {
             describe("listItem", function () {
                 it("Should list item", async function () {
                     await Erc721myInstance.setMinter(NFTMarketplaceInstance.address);
-                    const tokenId = await NFTMarketplaceInstance.createItemErc721(uri);
+                    const tokenId = await NFTMarketplaceInstance["createItem(string)"](uri);
                     await Erc721myInstance.approve(NFTMarketplaceInstance.address, tokenId.value);
                     const price = 100;
-                    const listingId = await NFTMarketplaceInstance.listItemErc721(tokenId.value, price);
+                    const listingId = await NFTMarketplaceInstance["listItem(uint256,uint256)"](tokenId.value, price);
                     expect(listingId.value).to.equal(0);
                 });
 
                 it("Should not be possible to list item twice", async function () {
                     await Erc721myInstance.setMinter(NFTMarketplaceInstance.address);
-                    const tokenId = await NFTMarketplaceInstance.createItemErc721(uri);
+                    const tokenId = await NFTMarketplaceInstance["createItem(string)"](uri);
                     await Erc721myInstance.approve(NFTMarketplaceInstance.address, tokenId.value);
                     const price = 100;
-                    await NFTMarketplaceInstance.listItemErc721(tokenId.value, price);
-                    await expect(NFTMarketplaceInstance.listItemErc721(tokenId.value, price)).to.be.revertedWith("Item is already listed");
+                    await NFTMarketplaceInstance["listItem(uint256,uint256)"](tokenId.value, price);
+                    await expect(NFTMarketplaceInstance["listItem(uint256,uint256)"](tokenId.value, price)).to.be.revertedWith("Item is already listed");
                 });
 
                 it("Should not be possible to list with price 0", async function () {
                     await Erc721myInstance.setMinter(NFTMarketplaceInstance.address);
-                    const tokenId = await NFTMarketplaceInstance.createItemErc721(uri);
+                    const tokenId = await NFTMarketplaceInstance["createItem(string)"](uri);
                     await Erc721myInstance.approve(NFTMarketplaceInstance.address, tokenId.value);
                     const price = 0;
-                    await expect(NFTMarketplaceInstance.listItemErc721(tokenId.value, price)).to.be.revertedWith("Price must be greater than 0");
+                    await expect(NFTMarketplaceInstance["listItem(uint256,uint256)"](tokenId.value, price)).to.be.revertedWith("Price must be greater than 0");
                 });
             });
             describe("cancel", function () {
                 it("Should cancel listing", async function () {
                     await Erc721myInstance.setMinter(NFTMarketplaceInstance.address);
-                    const tokenId = await NFTMarketplaceInstance.createItemErc721(uri);
+                    const tokenId = await NFTMarketplaceInstance["createItem(string)"](uri);
                     await Erc721myInstance.approve(NFTMarketplaceInstance.address, tokenId.value);
                     const price = 100;
-                    const listingId = await NFTMarketplaceInstance.listItemErc721(tokenId.value, price);
+                    const listingId = await NFTMarketplaceInstance["listItem(uint256,uint256)"](tokenId.value, price);
                     await NFTMarketplaceInstance.cancel(listingId.value);
-                    const listing = await NFTMarketplaceInstance.getListing(listingId.value);
+                    const listing = await NFTMarketplaceInstance.listings(listingId.value);
                     expect(await NFTMarketplaceInstance.isListedErc721(tokenId.value)).to.equal(false);
                     expect(listing.isOpen).to.equal(false);
                     expect(await Erc721myInstance.ownerOf(tokenId.value)).to.equal(owner.address);
@@ -104,18 +102,18 @@ describe("NFTMarketplace", function () {
                 });
                 it("Should check if seller to cancel", async function () {
                     await Erc721myInstance.setMinter(NFTMarketplaceInstance.address);
-                    const tokenId = await NFTMarketplaceInstance.createItemErc721(uri);
+                    const tokenId = await NFTMarketplaceInstance["createItem(string)"](uri);
                     await Erc721myInstance.approve(NFTMarketplaceInstance.address, tokenId.value);
                     const price = 100;
-                    const listingId = await NFTMarketplaceInstance.listItemErc721(tokenId.value, price);
+                    const listingId = await NFTMarketplaceInstance["listItem(uint256,uint256)"](tokenId.value, price);
                     await expect(NFTMarketplaceInstance.connect(addr1).cancel(listingId.value)).to.be.revertedWith("Only seller can cancel");
                 });
                 it("Should not possible to cancel twice", async function () {
                     await Erc721myInstance.setMinter(NFTMarketplaceInstance.address);
-                    const tokenId = await NFTMarketplaceInstance.createItemErc721(uri);
+                    const tokenId = await NFTMarketplaceInstance["createItem(string)"](uri);
                     await Erc721myInstance.approve(NFTMarketplaceInstance.address, tokenId.value);
                     const price = 100;
-                    const listingId = await NFTMarketplaceInstance.listItemErc721(tokenId.value, price);
+                    const listingId = await NFTMarketplaceInstance["listItem(uint256,uint256)"](tokenId.value, price);
                     await NFTMarketplaceInstance.cancel(listingId.value);
                     await expect(NFTMarketplaceInstance.cancel(listingId.value)).to.be.revertedWith("Listing is already closed");
                 });
@@ -127,9 +125,9 @@ describe("NFTMarketplace", function () {
                     await Erc20myInstance.transfer(addr1.address, price);
                     const initialBalance = await Erc20myInstance.balanceOf(owner.address);
                     await Erc20myInstance.connect(addr1).approve(NFTMarketplaceInstance.address, price);
-                    const tokenId = (await NFTMarketplaceInstance.createItemErc721(uri)).value;
+                    const tokenId = (await NFTMarketplaceInstance["createItem(string)"](uri)).value;
                     await Erc721myInstance.approve(NFTMarketplaceInstance.address, tokenId);
-                    const listingId = await NFTMarketplaceInstance.listItemErc721(tokenId, price);
+                    const listingId = await NFTMarketplaceInstance["listItem(uint256,uint256)"](tokenId, price);
                     await NFTMarketplaceInstance.connect(addr1).buyItem(listingId.value);
                     expect(await NFTMarketplaceInstance.isListedErc721(tokenId)).to.equal(false);
                     expect(await Erc20myInstance.balanceOf(addr1.address)).to.equal(0);
@@ -144,27 +142,27 @@ describe("NFTMarketplace", function () {
                 });
                 it("Should check if own item", async function () {
                     await Erc721myInstance.setMinter(NFTMarketplaceInstance.address);
-                    const tokenId = await NFTMarketplaceInstance.createItemErc721(uri);
+                    const tokenId = await NFTMarketplaceInstance["createItem(string)"](uri);
                     await Erc721myInstance.approve(NFTMarketplaceInstance.address, tokenId.value);
                     const price = 100;
-                    const listingId = await NFTMarketplaceInstance.listItemErc721(tokenId.value, price);
+                    const listingId = await NFTMarketplaceInstance["listItem(uint256,uint256)"](tokenId.value, price);
                     await expect(NFTMarketplaceInstance.buyItem(listingId.value)).to.be.revertedWith("Cannot buy your own item");
                 });
                 it("Should check balance of buyer", async function () {
                     await Erc721myInstance.setMinter(NFTMarketplaceInstance.address);
                     const price = 100;
                     await Erc20myInstance.connect(addr1).approve(NFTMarketplaceInstance.address, price);
-                    const tokenId = (await NFTMarketplaceInstance.createItemErc721(uri)).value;
+                    const tokenId = (await NFTMarketplaceInstance["createItem(string)"](uri)).value;
                     await Erc721myInstance.approve(NFTMarketplaceInstance.address, tokenId);
-                    const listingId = await NFTMarketplaceInstance.listItemErc721(tokenId, price);
+                    const listingId = await NFTMarketplaceInstance["listItem(uint256,uint256)"](tokenId, price);
                     await expect(NFTMarketplaceInstance.connect(addr1).buyItem(listingId.value)).to.be.revertedWith("Not enough balance");
                 });
                 it("Should be opened to buy", async function () {
                     await Erc721myInstance.setMinter(NFTMarketplaceInstance.address);
-                    const tokenId = await NFTMarketplaceInstance.createItemErc721(uri);
+                    const tokenId = await NFTMarketplaceInstance["createItem(string)"](uri);
                     await Erc721myInstance.approve(NFTMarketplaceInstance.address, tokenId.value);
                     const price = 100;
-                    const listingId = await NFTMarketplaceInstance.listItemErc721(tokenId.value, price);
+                    const listingId = await NFTMarketplaceInstance["listItem(uint256,uint256)"](tokenId.value, price);
                     await NFTMarketplaceInstance.cancel(listingId.value);
                     await expect(NFTMarketplaceInstance.connect(addr1).buyItem(listingId.value)).to.be.revertedWith("Item is not open for purchase");
                 });
@@ -175,27 +173,27 @@ describe("NFTMarketplace", function () {
                 it("Should list item on auction", async function () {
                     await Erc721myInstance.setMinter(NFTMarketplaceInstance.address);
                     const price = 100;
-                    const tokenId = await NFTMarketplaceInstance.createItemErc721(uri);
+                    const tokenId = await NFTMarketplaceInstance["createItem(string)"](uri);
                     await Erc721myInstance.approve(NFTMarketplaceInstance.address, tokenId.value);
-                    const auctionId = await NFTMarketplaceInstance.listItemOnAuctionErc721(tokenId.value, price);
+                    const auctionId = await NFTMarketplaceInstance["listItemOnAuction(uint256,uint256)"](tokenId.value, price);
                     expect(auctionId.value).to.equal(0);
                 });
 
                 it("Should not be possible to list item on auction with price 0", async function () {
                     await Erc721myInstance.setMinter(NFTMarketplaceInstance.address);
                     const price = 0;
-                    const tokenId = await NFTMarketplaceInstance.createItemErc721(uri);
+                    const tokenId = await NFTMarketplaceInstance["createItem(string)"](uri);
                     await Erc721myInstance.approve(NFTMarketplaceInstance.address, tokenId.value);
-                    await expect(NFTMarketplaceInstance.listItemOnAuctionErc721(tokenId.value, price)).to.be.revertedWith("Price must be greater than 0");
+                    await expect(NFTMarketplaceInstance["listItemOnAuction(uint256,uint256)"](tokenId.value, price)).to.be.revertedWith("Price must be greater than 0");
                 });
 
                 it("Should not possible to list item on auction twice", async function () {
                     await Erc721myInstance.setMinter(NFTMarketplaceInstance.address);
                     const price = 100;
-                    const tokenId = await NFTMarketplaceInstance.createItemErc721(uri);
+                    const tokenId = await NFTMarketplaceInstance["createItem(string)"](uri);
                     await Erc721myInstance.approve(NFTMarketplaceInstance.address, tokenId.value);
-                    await NFTMarketplaceInstance.listItemOnAuctionErc721(tokenId.value, price);
-                    await expect(NFTMarketplaceInstance.listItemOnAuctionErc721(tokenId.value, price)).to.be.revertedWith("Item is already listed");
+                    await NFTMarketplaceInstance["listItemOnAuction(uint256,uint256)"](tokenId.value, price);
+                    await expect(NFTMarketplaceInstance["listItemOnAuction(uint256,uint256)"](tokenId.value, price)).to.be.revertedWith("Item is already listed");
                 });
             });
             describe("finishAuction", async function () {
@@ -205,9 +203,9 @@ describe("NFTMarketplace", function () {
                     await Erc20myInstance.transfer(addr1.address, price * 100);
                     await Erc20myInstance.connect(addr1).approve(NFTMarketplaceInstance.address, price * 100);
                     await Erc20myInstance.approve(NFTMarketplaceInstance.address, price * 100);
-                    const tokenId = await NFTMarketplaceInstance.createItemErc721(uri);
+                    const tokenId = await NFTMarketplaceInstance["createItem(string)"](uri);
                     await Erc721myInstance.approve(NFTMarketplaceInstance.address, tokenId.value);
-                    const auctionId = await NFTMarketplaceInstance.listItemOnAuctionErc721(tokenId.value, price);
+                    const auctionId = await NFTMarketplaceInstance["listItemOnAuction(uint256,uint256)"](tokenId.value, price);
 
                     await NFTMarketplaceInstance.connect(addr1).makeBid(auctionId.value, await NFTMarketplaceInstance.getNextAuctionPrice(auctionId.value));
                     await NFTMarketplaceInstance.makeBid(auctionId.value, await NFTMarketplaceInstance.getNextAuctionPrice(auctionId.value));
@@ -216,7 +214,7 @@ describe("NFTMarketplace", function () {
                     await testTools._increaseTime(auctionLength + 1);
 
                     await NFTMarketplaceInstance.finishAuction(auctionId.value);
-                    const auction = await NFTMarketplaceInstance.getAuction(auctionId.value);
+                    const auction = await NFTMarketplaceInstance.auctions(auctionId.value);
 
                     expect(auction.isOpen).to.equal(false);
                     expect(await Erc721myInstance.ownerOf(tokenId.value)).to.equal(addr1.address);
@@ -230,9 +228,9 @@ describe("NFTMarketplace", function () {
                     await Erc20myInstance.transfer(addr1.address, price * 100);
                     await Erc20myInstance.connect(addr1).approve(NFTMarketplaceInstance.address, price * 100);
                     await Erc20myInstance.approve(NFTMarketplaceInstance.address, price * 100);
-                    const tokenId = await NFTMarketplaceInstance.createItemErc721(uri);
+                    const tokenId = await NFTMarketplaceInstance["createItem(string)"](uri);
                     await Erc721myInstance.approve(NFTMarketplaceInstance.address, tokenId.value);
-                    const auctionId = await NFTMarketplaceInstance.listItemOnAuctionErc721(tokenId.value, price);
+                    const auctionId = await NFTMarketplaceInstance["listItemOnAuction(uint256,uint256)"](tokenId.value, price);
 
                     await testTools._increaseTime(auctionLength + 1);
 
@@ -245,9 +243,9 @@ describe("NFTMarketplace", function () {
                     await Erc20myInstance.transfer(addr1.address, price * 100);
                     await Erc20myInstance.connect(addr1).approve(NFTMarketplaceInstance.address, price * 100);
                     await Erc20myInstance.approve(NFTMarketplaceInstance.address, price * 100);
-                    const tokenId = await NFTMarketplaceInstance.createItemErc721(uri);
+                    const tokenId = await NFTMarketplaceInstance["createItem(string)"](uri);
                     await Erc721myInstance.approve(NFTMarketplaceInstance.address, tokenId.value);
-                    const auctionId = await NFTMarketplaceInstance.listItemOnAuctionErc721(tokenId.value, price);
+                    const auctionId = await NFTMarketplaceInstance["listItemOnAuction(uint256,uint256)"](tokenId.value, price);
                     await expect(NFTMarketplaceInstance.finishAuction(auctionId.value)).to.be.revertedWith("Auction is not finished yet");
                 });
             });
@@ -259,39 +257,39 @@ describe("NFTMarketplace", function () {
             describe("listItem", function () {
                 it("Should list item", async function () {
                     await Erc1155myInstance.setMinter(NFTMarketplaceInstance.address);
-                    const tokenId = await NFTMarketplaceInstance.createItemErc1155(uri, 1);
+                    const tokenId = await NFTMarketplaceInstance["createItem(string,uint256)"](uri, 1);
                     await Erc1155myInstance.setApprovalForAll(NFTMarketplaceInstance.address, true);
                     const price = 100;
-                    const listingId = await NFTMarketplaceInstance.listItemErc1155(tokenId.value, price, 1);
+                    const listingId = await NFTMarketplaceInstance["listItem(uint256,uint256,uint256)"](tokenId.value, price, 1);
                     expect(listingId.value).to.equal(0);
                 });
 
                 it("Should not be possible to list item twice", async function () {
                     await Erc1155myInstance.setMinter(NFTMarketplaceInstance.address);
-                    const tokenId = await NFTMarketplaceInstance.createItemErc1155(uri, 1);
+                    const tokenId = await NFTMarketplaceInstance["createItem(string,uint256)"](uri, 1);
                     await Erc1155myInstance.setApprovalForAll(NFTMarketplaceInstance.address, true);
                     const price = 100;
-                    await NFTMarketplaceInstance.listItemErc1155(tokenId.value, price, 1);
-                    await expect(NFTMarketplaceInstance.listItemErc1155(tokenId.value, price, 1)).to.be.revertedWith("Item is already listed");
+                    await NFTMarketplaceInstance["listItem(uint256,uint256,uint256)"](tokenId.value, price, 1);
+                    await expect(NFTMarketplaceInstance["listItem(uint256,uint256,uint256)"](tokenId.value, price, 1)).to.be.revertedWith("Item is already listed");
                 });
 
                 it("Should not be possible to list with price 0", async function () {
                     await Erc1155myInstance.setMinter(NFTMarketplaceInstance.address);
-                    const tokenId = await NFTMarketplaceInstance.createItemErc1155(uri, 1);
+                    const tokenId = await NFTMarketplaceInstance["createItem(string,uint256)"](uri, 1);
                     await Erc1155myInstance.setApprovalForAll(NFTMarketplaceInstance.address, true);
                     const price = 0;
-                    await expect(NFTMarketplaceInstance.listItemErc1155(tokenId.value, price, 1)).to.be.revertedWith("Price must be greater than 0");
+                    await expect(NFTMarketplaceInstance["listItem(uint256,uint256,uint256)"](tokenId.value, price, 1)).to.be.revertedWith("Price must be greater than 0");
                 });
             });
             describe("cancel", function () {
                 it("Should cancel listing", async function () {
                     await Erc1155myInstance.setMinter(NFTMarketplaceInstance.address);
-                    const tokenId = await NFTMarketplaceInstance.createItemErc1155(uri, 1);
+                    const tokenId = await NFTMarketplaceInstance["createItem(string,uint256)"](uri, 1);
                     await Erc1155myInstance.setApprovalForAll(NFTMarketplaceInstance.address, true);
                     const price = 100;
-                    const listingId = await NFTMarketplaceInstance.listItemErc1155(tokenId.value, price, 1);
+                    const listingId = await NFTMarketplaceInstance["listItem(uint256,uint256,uint256)"](tokenId.value, price, 1);
                     await NFTMarketplaceInstance.cancel(listingId.value);
-                    const listing = await NFTMarketplaceInstance.getListing(listingId.value);
+                    const listing = await NFTMarketplaceInstance.listings(listingId.value);
                     expect(await NFTMarketplaceInstance.isListedErc1155(tokenId.value)).to.equal(false);
                     expect(listing.isOpen).to.equal(false);
                     expect(await Erc1155myInstance.balanceOf(owner.address, tokenId.value)).to.equal(1);
@@ -301,18 +299,18 @@ describe("NFTMarketplace", function () {
                 });
                 it("Should check if seller to cancel", async function () {
                     await Erc1155myInstance.setMinter(NFTMarketplaceInstance.address);
-                    const tokenId = await NFTMarketplaceInstance.createItemErc1155(uri, 1);
+                    const tokenId = await NFTMarketplaceInstance["createItem(string,uint256)"](uri, 1);
                     await Erc1155myInstance.setApprovalForAll(NFTMarketplaceInstance.address, true);
                     const price = 100;
-                    const listingId = await NFTMarketplaceInstance.listItemErc1155(tokenId.value, price, 1);
+                    const listingId = await NFTMarketplaceInstance["listItem(uint256,uint256,uint256)"](tokenId.value, price, 1);
                     await expect(NFTMarketplaceInstance.connect(addr1).cancel(listingId.value)).to.be.revertedWith("Only seller can cancel");
                 });
                 it("Should not possible to cancel twice", async function () {
                     await Erc1155myInstance.setMinter(NFTMarketplaceInstance.address);
-                    const tokenId = await NFTMarketplaceInstance.createItemErc1155(uri, 1);
+                    const tokenId = await NFTMarketplaceInstance["createItem(string,uint256)"](uri, 1);
                     await Erc1155myInstance.setApprovalForAll(NFTMarketplaceInstance.address, true);
                     const price = 100;
-                    const listingId = await NFTMarketplaceInstance.listItemErc1155(tokenId.value, price, 1);
+                    const listingId = await NFTMarketplaceInstance["listItem(uint256,uint256,uint256)"](tokenId.value, price, 1);
                     await NFTMarketplaceInstance.cancel(listingId.value);
                     await expect(NFTMarketplaceInstance.cancel(listingId.value)).to.be.revertedWith("Listing is already closed");
                 });
@@ -324,9 +322,9 @@ describe("NFTMarketplace", function () {
                     await Erc20myInstance.transfer(addr1.address, price);
                     const initialBalance = await Erc20myInstance.balanceOf(owner.address);
                     await Erc20myInstance.connect(addr1).approve(NFTMarketplaceInstance.address, price);
-                    const tokenId = (await NFTMarketplaceInstance.createItemErc1155(uri, 1)).value;
+                    const tokenId = (await NFTMarketplaceInstance["createItem(string,uint256)"](uri, 1)).value;
                     await Erc1155myInstance.setApprovalForAll(NFTMarketplaceInstance.address, true);
-                    const listingId = await NFTMarketplaceInstance.listItemErc1155(tokenId, price, 1);
+                    const listingId = await NFTMarketplaceInstance["listItem(uint256,uint256,uint256)"](tokenId, price, 1);
                     await NFTMarketplaceInstance.connect(addr1).buyItem(listingId.value);
                     expect(await NFTMarketplaceInstance.isListedErc1155(tokenId)).to.equal(false);
                     expect(await Erc20myInstance.balanceOf(addr1.address)).to.equal(0);
@@ -342,27 +340,27 @@ describe("NFTMarketplace", function () {
                 it("Should list item on auction", async function () {
                     await Erc1155myInstance.setMinter(NFTMarketplaceInstance.address);
                     const price = 100;
-                    const tokenId = await NFTMarketplaceInstance.createItemErc1155(uri, 1);
+                    const tokenId = await NFTMarketplaceInstance["createItem(string,uint256)"](uri, 1);
                     await Erc1155myInstance.setApprovalForAll(NFTMarketplaceInstance.address, true);
-                    const auctionId = await NFTMarketplaceInstance.listItemOnAuctionErc1155(tokenId.value, price, 1);
+                    const auctionId = await NFTMarketplaceInstance["listItemOnAuction(uint256,uint256,uint256)"](tokenId.value, price, 1);
                     expect(auctionId.value).to.equal(0);
                 });
 
                 it("Should not be possible to list item on auction with price 0", async function () {
                     await Erc1155myInstance.setMinter(NFTMarketplaceInstance.address);
                     const price = 0;
-                    const tokenId = await NFTMarketplaceInstance.createItemErc1155(uri, 1);
+                    const tokenId = await NFTMarketplaceInstance["createItem(string,uint256)"](uri, 1);
                     await Erc1155myInstance.setApprovalForAll(NFTMarketplaceInstance.address, true);
-                    await expect(NFTMarketplaceInstance.listItemOnAuctionErc1155(tokenId.value, price, 1)).to.be.revertedWith("Price must be greater than 0");
+                    await expect(NFTMarketplaceInstance["listItemOnAuction(uint256,uint256,uint256)"](tokenId.value, price, 1)).to.be.revertedWith("Price must be greater than 0");
                 });
 
                 it("Should not possible to list item on auction twice", async function () {
                     await Erc1155myInstance.setMinter(NFTMarketplaceInstance.address);
                     const price = 100;
-                    const tokenId = await NFTMarketplaceInstance.createItemErc1155(uri, 1);
+                    const tokenId = await NFTMarketplaceInstance["createItem(string,uint256)"](uri, 1);
                     await Erc1155myInstance.setApprovalForAll(NFTMarketplaceInstance.address, true);
-                    await NFTMarketplaceInstance.listItemOnAuctionErc1155(tokenId.value, price, 1);
-                    await expect(NFTMarketplaceInstance.listItemOnAuctionErc1155(tokenId.value, price, 1)).to.be.revertedWith("Item is already listed");
+                    await NFTMarketplaceInstance["listItemOnAuction(uint256,uint256,uint256)"](tokenId.value, price, 1);
+                    await expect(NFTMarketplaceInstance["listItemOnAuction(uint256,uint256,uint256)"](tokenId.value, price, 1)).to.be.revertedWith("Item is already listed");
                 });
             });
             describe("finishAuction", async function () {
@@ -372,9 +370,9 @@ describe("NFTMarketplace", function () {
                     await Erc20myInstance.transfer(addr1.address, price * 100);
                     await Erc20myInstance.connect(addr1).approve(NFTMarketplaceInstance.address, price * 100);
                     await Erc20myInstance.approve(NFTMarketplaceInstance.address, price * 100);
-                    const tokenId = await NFTMarketplaceInstance.createItemErc1155(uri, 1);
+                    const tokenId = await NFTMarketplaceInstance["createItem(string,uint256)"](uri, 1);
                     await Erc1155myInstance.setApprovalForAll(NFTMarketplaceInstance.address, true);
-                    const auctionId = await NFTMarketplaceInstance.listItemOnAuctionErc1155(tokenId.value, price, 1);
+                    const auctionId = await NFTMarketplaceInstance["listItemOnAuction(uint256,uint256,uint256)"](tokenId.value, price, 1);
 
                     await NFTMarketplaceInstance.connect(addr1).makeBid(auctionId.value, await NFTMarketplaceInstance.getNextAuctionPrice(auctionId.value));
                     await NFTMarketplaceInstance.makeBid(auctionId.value, await NFTMarketplaceInstance.getNextAuctionPrice(auctionId.value));
@@ -383,7 +381,7 @@ describe("NFTMarketplace", function () {
                     await testTools._increaseTime(auctionLength + 1);
 
                     await NFTMarketplaceInstance.finishAuction(auctionId.value);
-                    const auction = await NFTMarketplaceInstance.getAuction(auctionId.value);
+                    const auction = await NFTMarketplaceInstance.auctions(auctionId.value);
 
                     expect(auction.isOpen).to.equal(false);
                     expect(await Erc1155myInstance.balanceOf(owner.address, tokenId.value)).to.equal(0);
@@ -398,9 +396,9 @@ describe("NFTMarketplace", function () {
                     await Erc20myInstance.transfer(addr1.address, price * 100);
                     await Erc20myInstance.connect(addr1).approve(NFTMarketplaceInstance.address, price * 100);
                     await Erc20myInstance.approve(NFTMarketplaceInstance.address, price * 100);
-                    const tokenId = await NFTMarketplaceInstance.createItemErc1155(uri, 1);
+                    const tokenId = await NFTMarketplaceInstance["createItem(string,uint256)"](uri, 1);
                     await Erc1155myInstance.setApprovalForAll(NFTMarketplaceInstance.address, true);
-                    const auctionId = await NFTMarketplaceInstance.listItemOnAuctionErc1155(tokenId.value, price, 1);
+                    const auctionId = await NFTMarketplaceInstance["listItemOnAuction(uint256,uint256,uint256)"](tokenId.value, price, 1);
 
                     await testTools._increaseTime(auctionLength + 1);
 
@@ -413,9 +411,9 @@ describe("NFTMarketplace", function () {
                     await Erc20myInstance.transfer(addr1.address, price * 100);
                     await Erc20myInstance.connect(addr1).approve(NFTMarketplaceInstance.address, price * 100);
                     await Erc20myInstance.approve(NFTMarketplaceInstance.address, price * 100);
-                    const tokenId = await NFTMarketplaceInstance.createItemErc1155(uri, 1);
+                    const tokenId = await NFTMarketplaceInstance["createItem(string,uint256)"](uri, 1);
                     await Erc1155myInstance.setApprovalForAll(NFTMarketplaceInstance.address, true);
-                    const auctionId = await NFTMarketplaceInstance.listItemOnAuctionErc1155(tokenId.value, price, 1);
+                    const auctionId = await NFTMarketplaceInstance["listItemOnAuction(uint256,uint256,uint256)"](tokenId.value, price, 1);
                     await expect(NFTMarketplaceInstance.finishAuction(auctionId.value)).to.be.revertedWith("Auction is not finished yet");
                 });
             });
@@ -432,12 +430,12 @@ describe("NFTMarketplace", function () {
                 const price = 100;
                 await Erc20myInstance.transfer(addr1.address, price * (100 + auctionStep) / 100);
                 await Erc20myInstance.connect(addr1).approve(NFTMarketplaceInstance.address, price * (100 + auctionStep) / 100);
-                const tokenId = await NFTMarketplaceInstance.createItemErc721(uri);
+                const tokenId = await NFTMarketplaceInstance["createItem(string)"](uri);
                 await Erc721myInstance.approve(NFTMarketplaceInstance.address, tokenId.value);
 
-                const auctionId = await NFTMarketplaceInstance.listItemOnAuctionErc721(tokenId.value, price);
+                const auctionId = await NFTMarketplaceInstance["listItemOnAuction(uint256,uint256)"](tokenId.value, price);
                 await NFTMarketplaceInstance.connect(addr1).makeBid(auctionId.value, price * (100 + auctionStep) / 100);
-                const auction = await NFTMarketplaceInstance.getAuction(auctionId.value);
+                const auction = await NFTMarketplaceInstance.auctions(auctionId.value);
                 expect(auction.isOpen).to.equal(true);
                 expect(auction.bids).to.equal(1);
                 expect(auction.lastBider).to.equal(addr1.address);
@@ -451,10 +449,10 @@ describe("NFTMarketplace", function () {
                 const price = 100;
                 await Erc20myInstance.transfer(addr1.address, price * (100 + auctionStep) / 100);
                 await Erc20myInstance.connect(addr1).approve(NFTMarketplaceInstance.address, price * (100 + auctionStep) / 100);
-                const tokenId = await NFTMarketplaceInstance.createItemErc721(uri);
+                const tokenId = await NFTMarketplaceInstance["createItem(string)"](uri);
                 await Erc721myInstance.approve(NFTMarketplaceInstance.address, tokenId.value);
 
-                const auctionId = await NFTMarketplaceInstance.listItemOnAuctionErc721(tokenId.value, price);
+                const auctionId = await NFTMarketplaceInstance["listItemOnAuction(uint256,uint256)"](tokenId.value, price);
                 await testTools._increaseTime(auctionLength + 1);
                 await NFTMarketplaceInstance.finishAuction(auctionId.value);
 
@@ -470,9 +468,9 @@ describe("NFTMarketplace", function () {
                 await Erc721myInstance.setMinter(NFTMarketplaceInstance.address);
                 await Erc20myInstance.approve(NFTMarketplaceInstance.address, 1000);
                 const price = 100;
-                const tokenId = await NFTMarketplaceInstance.createItemErc721(uri);
+                const tokenId = await NFTMarketplaceInstance["createItem(string)"](uri);
                 await Erc721myInstance.approve(NFTMarketplaceInstance.address, tokenId.value);
-                const auctionId = await NFTMarketplaceInstance.listItemOnAuctionErc721(tokenId.value, price);
+                const auctionId = await NFTMarketplaceInstance["listItemOnAuction(uint256,uint256)"](tokenId.value, price);
                 const nextPrice = await NFTMarketplaceInstance.getNextAuctionPrice(auctionId.value);
 
                 await NFTMarketplaceInstance.makeBid(auctionId.value, price + price * auctionStep / 100);
