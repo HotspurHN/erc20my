@@ -270,7 +270,19 @@ describe("NFTMarketplace", function () {
                     await Erc1155myInstance.setApprovalForAll(NFTMarketplaceInstance.address, true);
                     const price = 100;
                     await NFTMarketplaceInstance["listItem(uint256,uint256,uint256)"](tokenId.value, price, 1);
-                    await expect(NFTMarketplaceInstance["listItem(uint256,uint256,uint256)"](tokenId.value, price, 1)).to.be.revertedWith("Item is already listed");
+                    await expect(NFTMarketplaceInstance["listItem(uint256,uint256,uint256)"](tokenId.value, price, 1)).to.be.revertedWith("ERC1155: insufficient balance for transfer");
+                });
+
+                it("Should be possible to list twice from different accounts", async function () {
+                    await Erc1155myInstance.setMinter(NFTMarketplaceInstance.address);
+                    const tokenId = await NFTMarketplaceInstance["createItem(string,uint256)"](uri, 10);
+                    await Erc1155myInstance.setApprovalForAll(NFTMarketplaceInstance.address, true);
+                    await Erc1155myInstance.safeTransferFrom(owner.address, addr1.address, tokenId.value, 1, "0x00");
+                    await Erc1155myInstance.connect(addr1).setApprovalForAll(NFTMarketplaceInstance.address, true);
+                    const price = 100;
+                    await NFTMarketplaceInstance["listItem(uint256,uint256,uint256)"](tokenId.value, price, 1);
+                    await NFTMarketplaceInstance.connect(addr1)["listItem(uint256,uint256,uint256)"](tokenId.value, price, 1);
+                    expect(await Erc1155myInstance.balanceOf(NFTMarketplaceInstance.address ,tokenId.value)).to.equal(2);
                 });
 
                 it("Should not be possible to list with price 0", async function () {
@@ -290,7 +302,6 @@ describe("NFTMarketplace", function () {
                     const listingId = await NFTMarketplaceInstance["listItem(uint256,uint256,uint256)"](tokenId.value, price, 1);
                     await NFTMarketplaceInstance.cancel(listingId.value);
                     const listing = await NFTMarketplaceInstance.listings(listingId.value);
-                    expect(await NFTMarketplaceInstance.isListedErc1155(tokenId.value)).to.equal(false);
                     expect(listing.isOpen).to.equal(false);
                     expect(await Erc1155myInstance.balanceOf(owner.address, tokenId.value)).to.equal(1);
                 });
@@ -326,7 +337,6 @@ describe("NFTMarketplace", function () {
                     await Erc1155myInstance.setApprovalForAll(NFTMarketplaceInstance.address, true);
                     const listingId = await NFTMarketplaceInstance["listItem(uint256,uint256,uint256)"](tokenId, price, 1);
                     await NFTMarketplaceInstance.connect(addr1).buyItem(listingId.value);
-                    expect(await NFTMarketplaceInstance.isListedErc1155(tokenId)).to.equal(false);
                     expect(await Erc20myInstance.balanceOf(addr1.address)).to.equal(0);
                     expect(await Erc20myInstance.balanceOf(owner.address)).to.equal(initialBalance.add(price * (100 - fee) / 100));
                     expect(await Erc20myInstance.balanceOf(NFTMarketplaceInstance.address)).to.equal(price * (fee) / 100);

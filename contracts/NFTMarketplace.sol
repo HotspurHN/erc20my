@@ -95,12 +95,8 @@ contract NFTMarketplace is ERC1155Holder, ERC721Holder {
         uint256 _count
     ) external returns (uint256) {
         require(_price > 0, "Price must be greater than 0");
-        require(
-            listingsByTokenId[erc1155][_tokenId] == false,
-            "Item is already listed"
-        );
         Listing memory listing = Listing({
-            id: listings.length + 1,
+            id: listings.length,
             seller: msg.sender,
             price: _price,
             tokenId: _tokenId,
@@ -110,7 +106,6 @@ contract NFTMarketplace is ERC1155Holder, ERC721Holder {
             contractAddress: erc1155
         });
         listings.push(listing);
-        listingsByTokenId[erc1155][_tokenId] = true;
         IERC1155(erc1155).safeTransferFrom(msg.sender, address(this), _tokenId, _count, "");
         return listing.id;
     }
@@ -189,7 +184,7 @@ contract NFTMarketplace is ERC1155Holder, ERC721Holder {
             "Item is already listed"
         );
         Auction memory auction = Auction({
-            id: auctions.length + 1,
+            id: auctions.length,
             seller: msg.sender,
             price: _price,
             tokenId: _tokenId,
@@ -224,7 +219,7 @@ contract NFTMarketplace is ERC1155Holder, ERC721Holder {
             ""
         );
         Auction memory auction = Auction({
-            id: auctions.length + 1,
+            id: auctions.length,
             seller: msg.sender,
             price: _price,
             tokenId: _tokenId,
@@ -314,10 +309,6 @@ contract NFTMarketplace is ERC1155Holder, ERC721Holder {
 
     function isListedErc721(uint256 _tokenId) external view returns (bool) {
         return listingsByTokenId[erc721][_tokenId];
-    }
-
-    function isListedErc1155(uint256 _tokenId) external view returns (bool) {
-        return listingsByTokenId[erc1155][_tokenId];
     }
 
     function getNextAuctionPrice(uint256 _auctionId)
