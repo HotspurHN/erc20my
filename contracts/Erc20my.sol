@@ -13,8 +13,8 @@ contract Erc20my is IErc20, IMintable {
     uint256 public totalSupply;
 
     address public owner;
-    address public minter;
 
+    mapping(address => bool) public minter;
     mapping(address => uint256) private balances;
     mapping(address => mapping(address => uint256)) private allowed;
 
@@ -26,7 +26,7 @@ contract Erc20my is IErc20, IMintable {
       _;
    }
     modifier onlyMinter {
-      require(msg.sender == minter, "Only minter allowed");
+      require(minter[msg.sender], "Only minter allowed");
       _;
    }
 
@@ -96,7 +96,7 @@ contract Erc20my is IErc20, IMintable {
         return _approve(msg.sender, _spender, allowed[msg.sender][_spender] - _value);
     }
     function setMinter(address _minter) public onlyOwner {
-        minter = _minter;
+        minter[_minter] = true;
     }
 
     function _approve(address _sender, address _spender, uint256 _value) private returns (bool) {

@@ -1,5 +1,5 @@
 import { expect } from "chai";
-import { Erc20my } from "../typechain-types/Erc20my";
+import { Erc20my } from "../typechain-types/contracts/Erc20my";
 const { ethers } = require("hardhat");
 
 describe("Erc20my", function () {
@@ -142,7 +142,7 @@ describe("Erc20my", function () {
   describe("setMinter", function () {
     it("Should set minter", async function () {
       await Erc20myInstance.setMinter(addr1.address);
-      expect(await Erc20myInstance.minter()).to.equal(addr1.address);
+      expect(await Erc20myInstance.minter(addr1.address)).to.equal(true);
     });
 
     it("Should fail when trying to set minter to non-owner", async function () {
