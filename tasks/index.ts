@@ -8,8 +8,10 @@ export function tasks() {
 
   const PRIVATE_KEY = process.env.PRIVATE_KEY || '';
   const CONTRACT = process.env.CONTRACT || '';
-  const CONTRACT_BridgeRinkeby = process.env.CONTRACT_BridgeRinkeby || '';
-  const CONTRACT_BridgeBsc = process.env.CONTRACT_BridgeBsc || '';
+  const BridgeContracts: { [name: string]: string } = {
+    'rinkeby': process.env.CONTRACT_BridgeRinkeby || '',
+    'bsctestnet': process.env.CONTRACT_BridgeBSC || '',
+  };
 
   const initBlockchainTask = async (hre: HardhatRuntimeEnvironment): Promise<Contract> => {
     let provider = hre.ethers.provider;
@@ -30,7 +32,6 @@ export function tasks() {
     return MyBridgeInstance;
   }
   const getSignatureFromEvent = (hre: HardhatRuntimeEnvironment, tx: any): Promise<string> => {
-    console.log([...tx?.events ?? []]);
     return hre.ethers.utils.defaultAbiCoder.decode(
       ['address', 'address', 'uint256', 'uint256', 'uint256', 'bytes'],
       [...tx?.events ?? []][1].data
@@ -62,38 +63,28 @@ export function tasks() {
       await instance.approve(spender, value);
     });
 
-  task("swaprinkeby", "Swap tokens")
+  task("swap", "Swap tokens")
     .addParam("amount", "integer")
     .addParam("nonce", "integer")
     .setAction(async ({ amount, nonce }, hre) => {
-      const instance = await initBlockchainBridgeTask(hre, CONTRACT_BridgeRinkeby);
+      const instance = await initBlockchainBridgeTask(hre, BridgeContracts[hre.network.name]);
       var tx = await instance.swap(amount, nonce);
-      console.log(await getSignatureFromEvent(hre, tx));
+      console.log(await getSignatureFromEvent(hre, await tx.wait()));
     });
-    task("swapbsc", "Swap tokens")
-      .addParam("amount", "integer")
-      .addParam("nonce", "integer")
-      .setAction(async ({ amount, nonce }, hre) => {
-        const instance = await initBlockchainBridgeTask(hre, CONTRACT_BridgeBsc);
-        var tx = await instance.swap(amount, nonce);
-        console.log(await getSignatureFromEvent(hre, tx));
-      });
 
-  task("redeemrinkeby", "Redeem tokens")
+  task("redeem", "Redeem tokens")
     .addParam("amount", "integer")
     .addParam("nonce", "integer")
     .addParam("signature", "string")
     .setAction(async ({ amount, nonce, signature }, hre) => {
-      const instance = await initBlockchainBridgeTask(hre, CONTRACT_BridgeRinkeby);
+      const instance = await initBlockchainBridgeTask(hre, BridgeContracts[hre.network.name]);
       await instance.redeem(amount, nonce, signature);
     });
 
-    task("redeembsc", "Redeem tokens")
-      .addParam("amount", "integer")
-      .addParam("nonce", "integer")
-      .addParam("signature", "string")
-      .setAction(async ({ amount, nonce, signature }, hre) => {
-        const instance = await initBlockchainBridgeTask(hre, CONTRACT_BridgeBsc);
-        await instance.redeem(amount, nonce, signature);
-      });
+  task("nonce", "Get next nonce")
+    .addParam("address", "string")
+    .setAction(async ({ address }, hre) => {
+      const instance = await initBlockchainBridgeTask(hre, BridgeContracts[hre.network.name]);
+      console.log(await instance.nextNonce(address));
+    });
 }

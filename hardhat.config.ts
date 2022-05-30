@@ -13,6 +13,7 @@ import { tasks } from "./tasks";
 const ALCHEMY_API_KEY = process.env.ALCHEMY_API_KEY;
 const PRIVATE_KEY = process.env.PRIVATE_KEY;
 const ETHERSCAN = process.env.ETHERSCAN;
+const BSCSCAN = process.env.BSCSCAN;
 
 tasks();
 
@@ -28,7 +29,7 @@ const config: HardhatUserConfig = {
       url: `https://eth-rinkeby.alchemyapi.io/v2/${ALCHEMY_API_KEY}`,
       accounts: [`${PRIVATE_KEY}`]
     },
-    bsctestnet: {
+    bscTestnet: {
       url: "https://data-seed-prebsc-1-s1.binance.org:8545",
       chainId: 97,
       gasPrice: 20000000000,
@@ -40,7 +41,10 @@ const config: HardhatUserConfig = {
     currency: "USD",
   },
   etherscan: {
-    apiKey: ETHERSCAN,
+    apiKey: {
+      rinkeby: ETHERSCAN,
+      bscTestnet: BSCSCAN
+    },
   },
 };
 

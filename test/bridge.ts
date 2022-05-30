@@ -39,8 +39,8 @@ describe("Bridge", function () {
         await Erc20myInstance.deployed();
         Erc20myInstance2 = await Erc20my.deploy(tokenName, tokenSymbol, tokenDecimals, tokenTotalSupply);
         await Erc20myInstance2.deployed();
-        MyBridgeInstance = await MyBridge.deploy(Erc20myInstance.address);
-        MyBridgeInstance2 = await MyBridge.deploy(Erc20myInstance2.address);
+        MyBridgeInstance = await MyBridge.deploy(Erc20myInstance.address, Erc20myInstance2.address);
+        MyBridgeInstance2 = await MyBridge.deploy(Erc20myInstance2.address, Erc20myInstance.address);
         await MyBridgeInstance.deployed();
         await MyBridgeInstance2.deployed();
         await Erc20myInstance.setMinter(MyBridgeInstance.address);
@@ -70,7 +70,7 @@ describe("Bridge", function () {
             const signature = getSignatureFromEvent(await tx.wait());
 
             const s = ethers.utils.keccak256(
-                ethers.utils.defaultAbiCoder.encode(['address', 'uint256', 'uint256'], [owner.address, amount, nonce])
+                ethers.utils.defaultAbiCoder.encode(['address', 'uint256', 'uint256', 'address'], [owner.address, amount, nonce, Erc20myInstance2.address])
             );
             expect(signature).to.equal(s);
         });
@@ -80,6 +80,13 @@ describe("Bridge", function () {
             const nonce = await MyBridgeInstance.nextNonce(owner.address);
             await MyBridgeInstance.swap(amount, nonce);
             await expect(MyBridgeInstance.swap(amount, nonce)).to.be.revertedWith("transfer already processed");
+        });
+
+        it("should not update nonce if lower than current nonce", async () => {
+            const amount = 100;
+            await MyBridgeInstance.swap(amount, 100);
+            await MyBridgeInstance.swap(amount, 1);
+            await expect(await MyBridgeInstance.nextNonce(owner.address)).to.be.equal(101);
         });
     });
 
@@ -129,9 +136,9 @@ describe("Bridge", function () {
             const amount = 100;
             const nonce = await MyBridgeInstance.nextNonce(owner.address);
             const tx = await (await MyBridgeInstance.swap(amount, nonce)).wait();
-            await MyBridgeInstance.redeem(amount, nonce,
+            await MyBridgeInstance2.redeem(amount, nonce,
                 await owner.signMessage(ethers.utils.arrayify(getSignatureFromEvent(tx))));
-            await expect(MyBridgeInstance.redeem(amount, nonce,
+            await expect(MyBridgeInstance2.redeem(amount, nonce,
                 await owner.signMessage(ethers.utils.arrayify(getSignatureFromEvent(tx))))).to.be.revertedWith("transfer already processed");
         });
         it("should not be possible to redeem from another account", async () => {

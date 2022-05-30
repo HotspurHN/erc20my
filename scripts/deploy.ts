@@ -10,7 +10,6 @@ async function main() {
   const MyBridgeInstance = await MyBridge.deploy(Erc20myInstance.address);
 
   await Erc20myInstance.deployed();
-
   await Erc20myInstance.setMinter(MyBridgeInstance.address);
 
   try {

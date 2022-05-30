@@ -8,6 +8,7 @@ import "./interfaces/IMintable.sol";
 
 contract MyBridge {
     address public token;
+    address public otherToken;
 
     mapping(address => mapping(uint256 => bool)) public processedNoncesIn;
     mapping(address => mapping(uint256 => bool)) public processedNoncesOut;
@@ -22,8 +23,9 @@ contract MyBridge {
         bytes signature
     );
 
-    constructor(address _token) {
+    constructor(address _token, address _otherToken) {
         token = _token;
+        otherToken = _otherToken;
     }
 
     function swap(
@@ -34,9 +36,11 @@ contract MyBridge {
             processedNoncesIn[msg.sender][nonce] == false,
             "transfer already processed"
         );
-        bytes32 msgHash = keccak256(abi.encode(msg.sender, amount, nonce));
+        bytes32 msgHash = keccak256(abi.encode(msg.sender, amount, nonce, otherToken));
         processedNoncesIn[msg.sender][nonce] = true;
-        nextNonce[msg.sender] = nonce + 1;
+        if (nextNonce[msg.sender] <= nonce) {
+            nextNonce[msg.sender] = nonce + 1;
+        }
         IMintable(token).burn(msg.sender, amount);
         emit Transfer(
             msg.sender,
@@ -54,7 +58,7 @@ contract MyBridge {
         bytes calldata signature
     ) external {
         bytes32 msgHash = keccak256(
-            abi.encode(msg.sender, amount, nonce)
+            abi.encode(msg.sender, amount, nonce, token)
         );
 
         require(_validSignature(signature, msgHash) == msg.sender, "wrong signature");
