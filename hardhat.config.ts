@@ -27,14 +27,23 @@ const config: HardhatUserConfig = {
     },
     rinkeby: {
       url: `https://eth-rinkeby.alchemyapi.io/v2/${ALCHEMY_API_KEY}`,
-      accounts: [`${PRIVATE_KEY}`]
+      accounts: [`${PRIVATE_KEY}`],
+      gas: 2100000,
+      gasPrice: 20000000000,
     },
     bscTestnet: {
       url: "https://data-seed-prebsc-1-s1.binance.org:8545",
       chainId: 97,
+      gas: 2100000,
       gasPrice: 20000000000,
       accounts: [`${PRIVATE_KEY}`]
     },
+    hardhat: {
+      chainId: 1337
+    },
+    localhost: {
+      chainId: 31337
+    }
   },
   gasReporter: {
     enabled: process.env.REPORT_GAS !== undefined,

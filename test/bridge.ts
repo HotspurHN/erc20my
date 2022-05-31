@@ -1,7 +1,7 @@
 import { expect } from "chai";
 import { Erc20my } from "../typechain-types/contracts/Erc20my";
 import { MyBridge } from "../typechain-types/contracts/MyBridge";
-const { ethers } = require("hardhat");
+const { ethers, network } = require("hardhat");
 import "dotenv/config";
 const hre = require("hardhat");
 require("@nomiclabs/hardhat-web3");
@@ -68,9 +68,11 @@ describe("Bridge", function () {
             const nonce = await MyBridgeInstance.nextNonce(owner.address);
             const tx = await MyBridgeInstance.swap(amount, nonce);
             const signature = getSignatureFromEvent(await tx.wait());
-
+            const n = await ethers.provider.getNetwork();
             const s = ethers.utils.keccak256(
-                ethers.utils.defaultAbiCoder.encode(['address', 'uint256', 'uint256', 'address'], [owner.address, amount, nonce, Erc20myInstance2.address])
+                ethers.utils.defaultAbiCoder.encode(
+                    ['address', 'uint256', 'uint256', 'address', 'uint256'], 
+                [owner.address, amount, nonce, Erc20myInstance2.address, n.chainId])
             );
             expect(signature).to.equal(s);
         });
@@ -114,17 +116,17 @@ describe("Bridge", function () {
             const amount1 = 1000;
             const amount2 = 100;
             const nonce1 = await MyBridgeInstance.nextNonce(owner.address);
-            const nonce2 = await MyBridgeInstance.nextNonce(owner.address);
+            const nonce2 = await MyBridgeInstance2.nextNonce(owner.address);
             const tx = await (await MyBridgeInstance.swap(amount1, nonce1)).wait();
             const tx2 = await (await MyBridgeInstance2.swap(amount2, nonce2)).wait();
             await MyBridgeInstance2.redeem(
                 amount1,
-                nonce2,
+                nonce1,
                 await owner.signMessage(ethers.utils.arrayify(getSignatureFromEvent(tx))));
 
             await MyBridgeInstance.redeem(
                 amount2,
-                nonce1,
+                nonce2,
                 await owner.signMessage(ethers.utils.arrayify(getSignatureFromEvent(tx2))));
 
             expect(await Erc20myInstance.totalSupply()).to.equal(tokenTotalSupply - amount1 + amount2);
@@ -158,6 +160,13 @@ describe("Bridge", function () {
             const nonce2 = await MyBridgeInstance.nextNonce(owner.address);
             expect(nonce1.toNumber()).to.equal(0);
             expect(nonce2.toNumber()).to.equal(1);
+        });
+    });
+
+    describe("setOtherToken", async () => {
+        it("should set other token", async () => {
+            await MyBridgeInstance.setOtherToken(Erc20myInstance2.address);
+            expect(await MyBridgeInstance.otherToken()).to.equal(Erc20myInstance2.address);
         });
     });
 

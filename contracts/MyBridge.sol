@@ -1,17 +1,17 @@
 //SPDX-License-Identifier: Unlicense
 pragma solidity ^0.8.0;
 
+import "hardhat/console.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
 import "./interfaces/IErc20.sol";
 import "./interfaces/IMintable.sol";
 
 contract MyBridge {
-    address public token;
+    address public immutable token;
     address public otherToken;
 
-    mapping(address => mapping(uint256 => bool)) public processedNoncesIn;
-    mapping(address => mapping(uint256 => bool)) public processedNoncesOut;
+    mapping(bytes32 => bool) public processedNonces;
     mapping(address => uint256) public nextNonce;
 
     event Transfer(
@@ -28,16 +28,15 @@ contract MyBridge {
         otherToken = _otherToken;
     }
 
-    function swap(
-        uint256 amount,
-        uint256 nonce
-    ) external {
+    function swap(uint256 amount, uint256 nonce) external {
+        bytes32 msgHash = keccak256(
+            abi.encode(msg.sender, amount, nonce, otherToken, getChainID())
+        );
         require(
-            processedNoncesIn[msg.sender][nonce] == false,
+            processedNonces[msgHash] == false,
             "transfer already processed"
         );
-        bytes32 msgHash = keccak256(abi.encode(msg.sender, amount, nonce, otherToken));
-        processedNoncesIn[msg.sender][nonce] = true;
+        processedNonces[msgHash] = true;
         if (nextNonce[msg.sender] <= nonce) {
             nextNonce[msg.sender] = nonce + 1;
         }
@@ -58,15 +57,18 @@ contract MyBridge {
         bytes calldata signature
     ) external {
         bytes32 msgHash = keccak256(
-            abi.encode(msg.sender, amount, nonce, token)
+            abi.encode(msg.sender, amount, nonce, token, getChainID())
         );
 
-        require(_validSignature(signature, msgHash) == msg.sender, "wrong signature");
         require(
-            processedNoncesOut[msg.sender][nonce] == false,
+            _validSignature(signature, msgHash) == msg.sender,
+            "wrong signature"
+        );
+        require(
+            processedNonces[msgHash] == false,
             "transfer already processed"
         );
-        processedNoncesOut[msg.sender][nonce] = true;
+        processedNonces[msgHash] = true;
         IMintable(token).mint(msg.sender, amount);
         emit Transfer(
             address(this),
@@ -78,7 +80,23 @@ contract MyBridge {
         );
     }
 
-    function _validSignature(bytes memory signature, bytes32 msgHash) internal pure returns (address) {
+    function setOtherToken(address _otherToken) external {
+        otherToken = _otherToken;
+    }
+
+    function _validSignature(bytes memory signature, bytes32 msgHash)
+        internal
+        pure
+        returns (address)
+    {
         return ECDSA.recover(ECDSA.toEthSignedMessageHash(msgHash), signature);
+    }
+
+    function getChainID() private view returns (uint256) {
+        uint256 id;
+        assembly {
+            id := chainid()
+        }
+        return id;
     }
 }
