@@ -8,45 +8,51 @@ import "./interfaces/IErc20.sol";
 import "./interfaces/IMintable.sol";
 
 contract MyBridge {
-    address public immutable token;
-    address public otherToken;
-
-    mapping(bytes32 => bool) public processedNonces;
+    mapping(address => address) public otherTokens;
+    mapping(bytes32 => bool) public processedHashes;
     mapping(address => uint256) public nextNonce;
 
-    event Transfer(
+    event Swap(
         address from,
+        uint256 amount,
+        uint256 date,
+        uint256 nonce,
+        uint256 chainId,
+        bytes signature
+    );
+    event Redeem(
         address to,
         uint256 amount,
         uint256 date,
         uint256 nonce,
+        uint256 chainId,
         bytes signature
     );
 
-    constructor(address _token, address _otherToken) {
-        token = _token;
-        otherToken = _otherToken;
+    constructor() {
     }
 
-    function swap(uint256 amount, uint256 nonce) external {
+    function swap(uint256 amount, uint256 nonce, address token) external {
+        require(otherTokens[token] != address(0), "Token not supported");
+        uint256 chainId = getChainID();
         bytes32 msgHash = keccak256(
-            abi.encode(msg.sender, amount, nonce, otherToken, getChainID())
+            abi.encode(msg.sender, amount, nonce, otherTokens[token], chainId)
         );
         require(
-            processedNonces[msgHash] == false,
+            processedHashes[msgHash] == false,
             "transfer already processed"
         );
-        processedNonces[msgHash] = true;
+        processedHashes[msgHash] = true;
         if (nextNonce[msg.sender] <= nonce) {
             nextNonce[msg.sender] = nonce + 1;
         }
         IMintable(token).burn(msg.sender, amount);
-        emit Transfer(
+        emit Swap(
             msg.sender,
-            address(this),
             amount,
             block.timestamp,
             nonce,
+            chainId,
             abi.encodePacked(msgHash)
         );
     }
@@ -54,10 +60,12 @@ contract MyBridge {
     function redeem(
         uint256 amount,
         uint256 nonce,
+        uint256 chainId,
+        address token,
         bytes calldata signature
     ) external {
         bytes32 msgHash = keccak256(
-            abi.encode(msg.sender, amount, nonce, token, getChainID())
+            abi.encode(msg.sender, amount, nonce, token, chainId)
         );
 
         require(
@@ -65,23 +73,23 @@ contract MyBridge {
             "wrong signature"
         );
         require(
-            processedNonces[msgHash] == false,
+            processedHashes[msgHash] == false,
             "transfer already processed"
         );
-        processedNonces[msgHash] = true;
+        processedHashes[msgHash] = true;
         IMintable(token).mint(msg.sender, amount);
-        emit Transfer(
+        emit Redeem(
             address(this),
-            msg.sender,
             amount,
             block.timestamp,
             nonce,
+            getChainID(),
             signature
         );
     }
 
-    function setOtherToken(address _otherToken) external {
-        otherToken = _otherToken;
+    function addOtherToken(address _sourceToken, address _otherToken) external {
+        otherTokens[_sourceToken] = _otherToken;
     }
 
     function _validSignature(bytes memory signature, bytes32 msgHash)

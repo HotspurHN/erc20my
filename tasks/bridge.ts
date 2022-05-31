@@ -56,9 +56,11 @@ export function tasks() {
 
     task("initothertoken", "Set otherToken to one from another network")
     .addParam("from", "string")
-    .setAction(async ({ from }, hre) => {
+    .addParam("to", "string")
+    .setAction(async ({ from, to }, hre) => {
         const values = JSON.parse(fs.readFileSync(`./deployed-${from}.json`, 'utf8'));
-        const instance = await initBlockchainBridgeTask(hre, BridgeContracts[hre.network.name]);
-        await instance.setOtherToken(values.Erc20my);
+        const valuesTo = JSON.parse(fs.readFileSync(`./deployed-${to}.json`, 'utf8'));
+        const instance = await initBlockchainBridgeTask(hre, BridgeContracts[from]);
+        await instance.addOtherToken(values.Erc20my, valuesTo.Erc20my);
     });
 }
